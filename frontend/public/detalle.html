@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de Evento - TicketPass</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="index.html" class="logo-container">
+            <span class="logo-text">TicketPass</span>
+        </a>
+        <div class="nav-links">
+            <a href="index.html">Eventos</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="detalle-wrapper">
+            <!-- Columna Izquierda: Información del Evento -->
+            <div class="detalle-main">
+                <img id="imgEvento" class="detalle-img" src="" alt="Evento">
+                <h1 id="tituloEvento" style="margin-bottom: 10px;">Cargando evento...</h1>
+                <p id="categoriaEvento" style="color: #2563eb; font-weight: bold; margin-bottom: 15px;"></p>
+                
+                <div style="margin-bottom: 20px; color: #4b5563;">
+                    <p id="lugarEvento">📍 </p>
+                    <p id="fechaEvento">📅 </p>
+                </div>
+
+                <h3>Descripción</h3>
+                <p id="descripcionEvento" style="margin-top: 10px; line-height: 1.6; color: #374151;">
+                    Cargando información del evento...
+                </p>
+            </div>
+
+            <!-- Columna Derecha: Formulario de Compras -->
+            <div class="reserva-card">
+                <div class="timer-box">
+                    Tiempo restante: <span id="timer">15:00</span>
+                </div>
+
+                <h2>Reserva</h2>
+                <form id="formReserva" style="margin-top: 15px;">
+                    <div class="form-group">
+                        <label for="selectZona">Zona:</label>
+                        <select id="selectZona" class="form-control" required></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputCantidad">Cantidad de Entradas:</label>
+                        <input type="number" id="inputCantidad" class="form-control" min="1" max="10" value="1" required>
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="checkReembolso">
+                        <label for="checkReembolso">Garantía Reembolsable (+S/ 12.99 por entrada)</label>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputEmail">Correo Electrónico para envío de entrada:</label>
+                        <input type="email" id="inputEmail" class="form-control" placeholder="tu_correo@gmail.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="selectMetodo">Método de Pago:</label>
+                        <select id="selectMetodo" class="form-control" required>
+                            <option value="Tarjeta de Crédito / Débito">Tarjeta de Crédito / Débito</option>
+                            <option value="Yape / Plin">Yape / Plin</option>
+                            <option value="PagoEfectivo">PagoEfectivo</option>
+                        </select>
+                    </div>
+
+                    <div class="total-box">
+                        <span class="total-title">Total a pagar:</span>
+                        <span id="txtTotal" class="total-monto">S/ 0.00</span>
+                    </div>
+
+                    <button type="submit" class="btn-comprar">Confirmar y Comprar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 TicketPass - Todos los derechos reservados.</p>
+    </footer>
+
+    <!-- MODAL HTML PERSONALIZADO -->
+    <div id="modalCompra" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-icon">🎉</div>
+            <h2 style="color: #111827; margin-bottom: 8px;">¡COMPRA EXITOSA!</h2>
+            <p style="color: #6b7280; font-size: 14px;">Tu transacción ha sido procesada con éxito.</p>
+            
+            <div class="modal-details">
+                <p style="margin-bottom: 6px;"><strong>Código de Ticket:</strong> <span id="modalCodigo" style="color: #2563eb; font-weight: bold;"></span></p>
+                <p><strong>Monto Total:</strong> <span id="modalMonto" style="font-weight: bold;"></span></p>
+            </div>
+
+            <p class="modal-note">Revisa tu bandeja de entrada para ver el detalle de la entrada.</p>
+            <button id="btnCerrarModal" class="btn-modal">Aceptar</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

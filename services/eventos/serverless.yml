@@ -1,0 +1,48 @@
+service: ticketpass-service-eventos
+
+provider:
+  name: aws
+  runtime: python3.11
+  stage: dev
+  region: us-east-1
+  iam:
+    role: arn:aws:iam::503186507833:role/LabRole
+
+functions:
+  obtenerEventos:
+    handler: handler.obtener_eventos
+    events:
+      - http:
+          path: /eventos
+          method: get
+          cors: true
+
+  obtenerEventoPorId:
+    handler: handler.obtener_evento_por_id
+    events:
+      - http:
+          path: /eventos/{id}
+          method: get
+          cors: true
+
+  precargarEventos:
+    handler: handler.precargar_eventos
+    events:
+      - http:
+          path: /eventos/seed
+          method: post
+          cors: true
+
+resources:
+  Resources:
+    TablaEventos:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ticketpass_eventos_${self:provider.stage}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST

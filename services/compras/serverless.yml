@@ -1,0 +1,32 @@
+service: ticketpass-service-compras
+
+provider:
+  name: aws
+  runtime: python3.11
+  stage: dev
+  region: us-east-1
+  iam:
+    role: arn:aws:iam::503186507833:role/LabRole
+
+functions:
+  procesarCompra:
+    handler: handler.procesar_compra
+    events:
+      - http:
+          path: /comprar
+          method: post
+          cors: true
+
+resources:
+  Resources:
+    TablaCompras:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ticketpass_compras_${self:provider.stage}
+        AttributeDefinitions:
+          - AttributeName: codigo_ticket
+            AttributeType: S
+        KeySchema:
+          - AttributeName: codigo_ticket
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST

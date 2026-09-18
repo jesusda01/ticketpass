@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TicketPass - Venta de Entradas</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Barra de Navegación -->
+    <nav class="navbar">
+        <a href="index.html" class="logo-container">
+            <span class="logo-text">TicketPass</span>
+        </a>
+        <div class="nav-links">
+            <a href="index.html">Eventos</a>
+        </div>
+    </nav>
+
+    <!-- Banner Principal -->
+    <section class="hero">
+        <h1>Encuentra los mejores eventos</h1>
+        <p>Conciertos, deportes, cine, arte y mucho más en un solo lugar.</p>
+    </section>
+
+    <!-- Filtros de Categoria -->
+    <div class="filter-container">
+        <button class="filter-btn active" onclick="filtrarCategoria('')">Todos</button>
+        <button class="filter-btn" onclick="filtrarCategoria('Conciertos')">Conciertos</button>
+        <button class="filter-btn" onclick="filtrarCategoria('Deporte')">Deporte</button>
+        <button class="filter-btn" onclick="filtrarCategoria('Cine')">Cine</button>
+        <button class="filter-btn" onclick="filtrarCategoria('Arte y Cultura')">Arte & Cultura</button>
+    </div>
+
+    <!-- Contenedor Principal de Eventos -->
+    <div class="container">
+        <div id="gridEventos" class="grid-eventos">
+            <!-- Las tarjetas se cargarán dinámicamente con app.js desde la API -->
+        </div>
+    </div>
+
+    <!-- Pie de Página -->
+    <footer>
+        <p>&copy; 2026 TicketPass - Todos los derechos reservados.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

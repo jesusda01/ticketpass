@@ -1,0 +1,12 @@
+# Entornos y temporales de Serverless
+.serverless/
+*.zip
+
+# Dependencias
+node_modules/
+__pycache__/
+*.pyc
+
+# Archivos de entorno y bases de datos locales
+.env
+*.db
