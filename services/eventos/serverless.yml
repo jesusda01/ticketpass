@@ -1,12 +1,13 @@
-service: ticketpass-service-eventos
+service: ticketpass-eventos
 
 provider:
   name: aws
-  runtime: python3.11
+  runtime: python3.9
   stage: dev
   region: us-east-1
-  iam:
-    role: arn:aws:iam::503186507833:role/LabRole
+  role: arn:aws:iam::503186507833:role/LabRole
+  environment:
+    STAGE: ${self:provider.stage}
 
 functions:
   obtenerEventos:
@@ -15,7 +16,31 @@ functions:
       - http:
           path: /eventos
           method: get
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+            allowCredentials: false
+
+  precargarEventos:
+    handler: handler.precargar_eventos
+    events:
+      - http:
+          path: /eventos/precargar
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+            allowCredentials: false
 
   obtenerEventoPorId:
     handler: handler.obtener_evento_por_id
@@ -23,26 +48,20 @@ functions:
       - http:
           path: /eventos/{id}
           method: get
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+            allowCredentials: false
 
-  precargarEventos:
-    handler: handler.precargar_eventos
-    events:
-      - http:
-          path: /eventos/seed
-          method: post
-          cors: true
+plugins:
+  - serverless-s3-sync
 
-resources:
-  Resources:
-    TablaEventos:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ticketpass_eventos_${self:provider.stage}
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
-        BillingMode: PAY_PER_REQUEST
+custom:
+  s3Sync:
+    - bucketName: ticketpass-app-utec
+      localDir: ../../frontend/public

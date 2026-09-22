@@ -3,48 +3,410 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TicketPass - Venta de Entradas</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>TicketPass - Tus Eventos Preferidos</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-    <!-- Barra de Navegación -->
-    <nav class="navbar">
-        <a href="index.html" class="logo-container">
-            <span class="logo-text">TicketPass</span>
-        </a>
-        <div class="nav-links">
-            <a href="index.html">Eventos</a>
+    <!-- HEADER / NAVBAR -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-2">
+                <span class="text-2xl font-black tracking-tight text-blue-600">TicketPass</span>
+            </a>
+            
+            <div id="navAuth" class="flex items-center gap-3">
+                <button onclick="showAuthModal('login')" class="text-sm font-medium text-slate-600 hover:text-blue-600 px-3 py-2 rounded-lg transition">
+                    Iniciar Sesión
+                </button>
+                <button onclick="showAuthModal('register')" class="text-sm font-semibold bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition shadow-sm shadow-blue-200">
+                    Registrarse
+                </button>
+            </div>
         </div>
-    </nav>
+    </header>
 
-    <!-- Banner Principal -->
-    <section class="hero">
-        <h1>Encuentra los mejores eventos</h1>
-        <p>Conciertos, deportes, cine, arte y mucho más en un solo lugar.</p>
+    <!-- BANNER HERO -->
+    <section class="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white py-12 px-4 sm:px-6">
+        <div class="max-w-7xl mx-auto text-center">
+            <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight mb-4">
+                Encuentra los mejores eventos
+            </h1>
+            <p class="text-slate-300 text-base sm:text-lg max-w-2xl mx-auto mb-8">
+                Conciertos, festivales, deportes y obras de teatro. Compra tus entradas al instante y de forma segura.
+            </p>
+            <div class="max-w-xl mx-auto relative">
+                <input type="text" id="searchInput" oninput="filtrarEventos()" placeholder="Buscar evento por nombre, artista o lugar..." class="w-full py-3.5 pl-11 pr-4 bg-white/10 backdrop-blur-md text-white placeholder-slate-400 border border-white/20 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm sm:text-base">
+                <svg class="w-5 h-5 absolute left-4 top-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+        </div>
     </section>
 
-    <!-- Filtros de Categoria -->
-    <div class="filter-container">
-        <button class="filter-btn active" onclick="filtrarCategoria('')">Todos</button>
-        <button class="filter-btn" onclick="filtrarCategoria('Conciertos')">Conciertos</button>
-        <button class="filter-btn" onclick="filtrarCategoria('Deporte')">Deporte</button>
-        <button class="filter-btn" onclick="filtrarCategoria('Cine')">Cine</button>
-        <button class="filter-btn" onclick="filtrarCategoria('Arte y Cultura')">Arte & Cultura</button>
-    </div>
+    <!-- LISTADO DE EVENTOS -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-grow w-full">
+        <div class="flex items-center justify-between mb-8">
+            <h2 class="text-2xl font-bold text-slate-900">Próximos Eventos</h2>
+            <span id="eventoCount" class="text-xs font-semibold bg-blue-100 text-blue-800 px-3 py-1 rounded-full">Cargando...</span>
+        </div>
 
-    <!-- Contenedor Principal de Eventos -->
-    <div class="container">
-        <div id="gridEventos" class="grid-eventos">
-            <!-- Las tarjetas se cargarán dinámicamente con app.js desde la API -->
+        <div id="eventosGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Renderizado dinámico -->
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 py-8 border-t border-slate-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs sm:text-sm">
+            <p>&copy; 2026 TicketPass. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- MODAL AUTH -->
+    <div id="authModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold p-1">&times;</button>
+            <h3 id="authTitle" class="text-2xl font-bold text-slate-900 mb-2">Iniciar Sesión</h3>
+            <p id="authSubtitle" class="text-sm text-slate-500 mb-6">Ingresa tus credenciales para continuar</p>
+
+            <form id="formAuth" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div id="nombreFieldContainer" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre Completo</label>
+                    <input type="text" id="authNombre" placeholder="Juan Pérez" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Correo Electrónico</label>
+                    <input type="email" id="authEmail" required placeholder="correo@ejemplo.com" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Contraseña</label>
+                    <input type="password" id="authPassword" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <button type="submit" id="authSubmitBtn" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition shadow-md shadow-blue-100 text-sm">
+                    Ingresar
+                </button>
+            </form>
         </div>
     </div>
 
-    <!-- Pie de Página -->
-    <footer>
-        <p>&copy; 2026 TicketPass - Todos los derechos reservados.</p>
-    </footer>
+    <!-- MODAL ESTADO -->
+    <div id="statusModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
+            <div id="statusIcon" class="w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-4"></div>
+            <h3 id="statusTitle" class="text-lg font-bold text-slate-900 mb-2"></h3>
+            <p id="statusMessage" class="text-sm text-slate-600 mb-6"></p>
+            <button onclick="closeStatusModal()" class="w-full bg-slate-900 text-white font-semibold py-2.5 rounded-xl hover:bg-slate-800 text-sm">
+                Aceptar
+            </button>
+        </div>
+    </div>
 
+    <!-- SCRIPT CORREGIDO -->
+    <script>
+        const API_URL = "https://k9ai3zejv8.execute-api.us-east-1.amazonaws.com/dev";
+        let todosLosEventos = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            actualizarNavbarUsuario();
+            cargarEventos();
+        });
+
+        async function cargarEventos() {
+            const grid = document.getElementById('eventosGrid');
+            const countBadge = document.getElementById('eventoCount');
+
+            if (!grid) return;
+
+            grid.innerHTML = `
+                <div class="col-span-full py-16 text-center">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent mb-3"></div>
+                    <p class="text-slate-500 font-medium text-sm">Cargando todos los eventos...</p>
+                </div>
+            `;
+
+            try {
+                let res = await fetch(`${API_URL}/eventos`).catch(() => null);
+                if (!res || !res.ok) {
+                    res = await fetch(`${API_URL}/eventos/`).catch(() => null);
+                }
+
+                if (!res || !res.ok) throw new Error("Error de conexión a la API");
+
+                const data = await res.json();
+                
+                if (Array.isArray(data)) {
+                    todosLosEventos = data;
+                } else if (data.eventos && Array.isArray(data.eventos)) {
+                    todosLosEventos = data.eventos;
+                } else if (data.items && Array.isArray(data.items)) {
+                    todosLosEventos = data.items;
+                } else if (data.body) {
+                    const parsedBody = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+                    todosLosEventos = Array.isArray(parsedBody) ? parsedBody : (parsedBody.eventos || parsedBody.items || []);
+                } else {
+                    todosLosEventos = [];
+                }
+
+                renderEventos(todosLosEventos);
+            } catch (error) {
+                console.error("Error al cargar eventos:", error);
+                grid.innerHTML = `
+                    <div class="col-span-full py-12 text-center text-red-500 bg-red-50 rounded-2xl border border-red-100 p-6">
+                        <p class="font-semibold text-base mb-1">No se pudieron obtener los eventos</p>
+                        <p class="text-xs text-red-400">Verifica la conexión con el servidor.</p>
+                    </div>
+                `;
+                if (countBadge) countBadge.textContent = "0 eventos";
+            }
+        }
+
+        function parsePrecio(evento) {
+            let val = evento.precio_base || evento.precioBase || evento.precio_desde || evento.precioDesde || evento.precio;
+            if (val && typeof val === 'object' && val.N !== undefined) val = val.N;
+            const num = parseFloat(val);
+            return (isNaN(num) || num <= 0) ? "25.00" : num.toFixed(2);
+        }
+
+        function renderEventos(lista) {
+            const grid = document.getElementById('eventosGrid');
+            const countBadge = document.getElementById('eventoCount');
+
+            if (countBadge) countBadge.textContent = `${lista.length} eventos`;
+
+            if (!lista || lista.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-slate-500">
+                        <p class="text-base font-medium">No hay eventos disponibles en la base de datos.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = lista.map(e => {
+                const id = e.id || e.evento_id || e.eventoId || e.PK;
+                const titulo = e.titulo || e.nombre || 'Evento sin título';
+                const categoria = e.categoria || 'GENERAL';
+                const lugar = e.lugar || e.ubicacion || 'Lugar por confirmar';
+                const fecha = e.fecha || 'Fecha por confirmar';
+                const hora = e.hora || '19:00 hrs';
+                const imagen = e.imagen || e.imagen_url || 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80';
+                const precio = parsePrecio(e);
+
+                return `
+                    <div class="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col group">
+                        <div class="relative h-48 overflow-hidden bg-slate-100">
+                            <img src="${imagen}" alt="${titulo}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80'">
+                            <span class="absolute top-3 left-3 text-[10px] font-extrabold tracking-wider uppercase bg-white/90 backdrop-blur-md text-blue-700 px-2.5 py-1 rounded-md shadow-sm">
+                                ${categoria}
+                            </span>
+                        </div>
+                        <div class="p-5 flex flex-col flex-grow justify-between">
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-lg leading-snug mb-2 line-clamp-1">${titulo}</h3>
+                                <p class="text-xs text-slate-500 mb-4 flex items-center gap-1">
+                                    <span>📍 ${lugar}</span>
+                                    <span class="text-slate-300">•</span>
+                                    <span>🗓️ ${fecha} - ${hora}</span>
+                                </p>
+                            </div>
+                            <div class="pt-4 border-t border-slate-100 flex items-center justify-between mt-auto">
+                                <div>
+                                    <span class="block text-[10px] font-bold uppercase text-slate-400">Desde</span>
+                                    <span class="text-base font-extrabold text-slate-900">S/ ${precio}</span>
+                                </div>
+                                <a href="detalle.html?id=${encodeURIComponent(id)}" class="bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-600 transition shadow-sm">
+                                    Ver Entradas
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filtrarEventos() {
+            const input = document.getElementById('searchInput');
+            if (!input) return;
+            const query = input.value.toLowerCase().trim();
+            if (!query) {
+                renderEventos(todosLosEventos);
+                return;
+            }
+            const filtrados = todosLosEventos.filter(e => {
+                const titulo = (e.titulo || e.nombre || '').toLowerCase();
+                const lugar = (e.lugar || e.ubicacion || '').toLowerCase();
+                const categoria = (e.categoria || '').toLowerCase();
+                return titulo.includes(query) || lugar.includes(query) || categoria.includes(query);
+            });
+            renderEventos(filtrados);
+        }
+
+        let currentAuthMode = 'login';
+        function showAuthModal(mode = 'login') {
+            currentAuthMode = mode;
+            const modal = document.getElementById('authModal');
+            const title = document.getElementById('authTitle');
+            const subtitle = document.getElementById('authSubtitle');
+            const submitBtn = document.getElementById('authSubmitBtn');
+            const nombreContainer = document.getElementById('nombreFieldContainer');
+
+            if (mode === 'register') {
+                title.textContent = "Crear Cuenta";
+                subtitle.textContent = "Regístrate para comprar tus entradas fácilmente";
+                submitBtn.textContent = "Registrarse";
+                nombreContainer.classList.remove('hidden');
+            } else {
+                title.textContent = "Iniciar Sesión";
+                subtitle.textContent = "Ingresa tus credenciales para continuar";
+                submitBtn.textContent = "Ingresar";
+                nombreContainer.classList.add('hidden');
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            const modal = document.getElementById('authModal');
+            const form = document.getElementById('formAuth');
+            if (modal) modal.classList.add('hidden');
+            if (form) form.reset();
+        }
+
+        function handleAuthSubmit(event) {
+            event.preventDefault();
+            const emailInput = document.getElementById('authEmail');
+            const nombreInput = document.getElementById('authNombre');
+            const passwordInput = document.getElementById('authPassword');
+
+            const email = emailInput ? emailInput.value.trim().toLowerCase() : "";
+            const password = passwordInput ? passwordInput.value.trim() : "";
+            const nombreVal = nombreInput ? nombreInput.value.trim() : "";
+
+            if (!email || !password) {
+                showModal(false, "Error", "Por favor completa todos los campos.");
+                return;
+            }
+
+            // Obtener lista de usuarios registrados previamente
+            const usuariosRegistrados = JSON.parse(localStorage.getItem('usuariosTicketPass_db')) || [];
+
+            if (currentAuthMode === 'register') {
+                // Verificar si ya existe la cuenta
+                const existe = usuariosRegistrados.some(u => u.email === email);
+                if (existe) {
+                    showModal(false, "Error de Registro", "El correo ingresado ya se encuentra registrado.");
+                    return;
+                }
+
+                let nombreFinal = nombreVal;
+                if (!nombreFinal) {
+                    const partes = email.split('@');
+                    nombreFinal = partes[0].charAt(0).toUpperCase() + partes[0].slice(1);
+                }
+
+                const nuevoUsuario = { email: email, password: password, nombre: nombreFinal };
+                usuariosRegistrados.push(nuevoUsuario);
+                localStorage.setItem('usuariosTicketPass_db', JSON.stringify(usuariosRegistrados));
+
+                // Iniciar sesión automáticamente tras el registro
+                localStorage.setItem('usuarioTicketPass', JSON.stringify({ email: email, nombre: nombreFinal }));
+                closeAuthModal();
+                actualizarNavbarUsuario();
+                showModal(true, "¡Registro Exitoso!", `Bienvenido, ${nombreFinal}. Tu cuenta ha sido creada correctamente.`);
+
+            } else {
+                // MODO LOGIN: Validar que el usuario exista
+                const usuarioEncontrado = usuariosRegistrados.find(u => u.email === email);
+
+                if (!usuarioEncontrado) {
+                    showModal(false, "Error de Acceso", "La cuenta ingresada no existe. Por favor regístrate antes de iniciar sesión.");
+                    return;
+                }
+
+                if (usuarioEncontrado.password !== password) {
+                    showModal(false, "Error de Acceso", "Contraseña incorrecta. Por favor verifica tus credenciales.");
+                    return;
+                }
+
+                // Si email y password coinciden:
+                localStorage.setItem('usuarioTicketPass', JSON.stringify({ email: usuarioEncontrado.email, nombre: usuarioEncontrado.nombre }));
+                closeAuthModal();
+                actualizarNavbarUsuario();
+                showModal(true, "¡Bienvenido!", `Hola, ${usuarioEncontrado.nombre}. Has iniciado sesión correctamente.`);
+            }
+        }
+
+        function actualizarNavbarUsuario() {
+            const navAuth = document.getElementById('navAuth');
+            if (!navAuth) return;
+            const usuarioRaw = localStorage.getItem('usuarioTicketPass');
+
+            if (usuarioRaw) {
+                const usuario = JSON.parse(usuarioRaw);
+                navAuth.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <a href="historial.html" class="text-xs font-semibold text-slate-600 hover:text-blue-600 px-3 py-2 rounded-xl transition border border-slate-200 bg-white">
+                            Mis Compras
+                        </a>
+                        <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="text-xs font-semibold text-slate-700">Hola, <strong class="text-blue-600 font-bold">${usuario.nombre}</strong></span>
+                        </div>
+                        <button onclick="cerrarSesion()" class="text-xs text-red-600 hover:text-red-700 font-medium bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl transition border border-red-100">
+                            Cerrar Sesión
+                        </button>
+                    </div>
+                `;
+            } else {
+                navAuth.innerHTML = `
+                    <button onclick="showAuthModal('login')" class="text-sm font-medium text-slate-600 hover:text-blue-600 px-3 py-2 rounded-lg transition">
+                        Iniciar Sesión
+                    </button>
+                    <button onclick="showAuthModal('register')" class="text-sm font-semibold bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition shadow-sm shadow-blue-200">
+                        Registrarse
+                    </button>
+                `;
+            }
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('usuarioTicketPass');
+            actualizarNavbarUsuario();
+            showModal(true, "Sesión Cerrada", "Has cerrado sesión correctamente.");
+        }
+
+        function showModal(exito, titulo, mensaje) {
+            const modal = document.getElementById('statusModal');
+            const iconContainer = document.getElementById('statusIcon');
+            const titleElem = document.getElementById('statusTitle');
+            const msgElem = document.getElementById('statusMessage');
+
+            if (!modal || !iconContainer || !titleElem || !msgElem) return;
+
+            titleElem.textContent = titulo;
+            msgElem.textContent = mensaje;
+
+            if (exito) {
+                iconContainer.className = "w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-4 bg-emerald-100 text-emerald-600";
+                iconContainer.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+            } else {
+                iconContainer.className = "w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-4 bg-red-100 text-red-600";
+                iconContainer.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeStatusModal() {
+            const modal = document.getElementById('statusModal');
+            if (modal) modal.classList.add('hidden');
+        }
+    </script>
     <script src="app.js"></script>
 </body>
 </html>

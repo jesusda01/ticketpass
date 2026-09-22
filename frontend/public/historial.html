@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Compras - TicketPass</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- HEADER / NAVBAR -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-2">
+                <span class="text-2xl font-black tracking-tight text-blue-600">TicketPass</span>
+            </a>
+            
+            <div id="navAuth" class="flex items-center gap-3">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL LAYOUT CON SIDEBAR -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- PANEL LATERAL IZQUIERDO -->
+            <aside class="lg:col-span-3 space-y-4">
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                    <nav class="space-y-1">
+                        <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 rounded-xl transition">
+                            <span>🏠</span> Inicio
+                        </a>
+                        <a href="historial.html" class="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-blue-600 bg-blue-50 rounded-xl">
+                            <span class="flex items-center gap-3">
+                                <span>🛍️</span> Mis compras
+                            </span>
+                            <span class="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">Activo</span>
+                        </a>
+                    </nav>
+
+                    <div class="pt-4 mt-4 border-t border-slate-100">
+                        <button onclick="cerrarSesion()" class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl transition">
+                            <span>🚪</span> Cerrar sesión
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- PANEL DE CONTENIDO DERECHO (HISTORIAL DE COMPRAS) -->
+            <section class="lg:col-span-9 space-y-6">
+                
+                <!-- HEADER DEL USUARIO -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 rounded-full bg-blue-100 border-2 border-blue-500 text-blue-600 font-extrabold text-xl flex items-center justify-center">
+                            👤
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h1 id="usrNombre" class="text-xl font-bold text-slate-900">Usuario</h1>
+                                <span class="bg-emerald-100 text-emerald-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full">✓ Verificado</span>
+                            </div>
+                            <p id="usrEmail" class="text-xs text-slate-500 mt-0.5">correo@ejemplo.com</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-900">Historial de compras</h2>
+                        <p class="text-xs text-slate-500">Revisa todas tus compras realizadas en TicketPass.</p>
+                    </div>
+                </div>
+
+                <!-- BUSCADOR -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                    <div class="relative">
+                        <input type="text" id="inputBuscar" onkeyup="filtrarCompras()" placeholder="Buscar por evento o código de ticket..." class="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                </div>
+
+                <!-- TABLA / LISTADO DE COMPRAS -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider">
+                                <tr>
+                                    <th class="py-3.5 px-4">Fecha compra</th>
+                                    <th class="py-3.5 px-4">Evento / Entrada</th>
+                                    <th class="py-3.5 px-4 text-center">Cantidad</th>
+                                    <th class="py-3.5 px-4">Estado</th>
+                                    <th class="py-3.5 px-4 text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaCompras" class="divide-y divide-slate-100 font-medium text-slate-700">
+                                <!-- Se renderiza dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="sinCompras" class="hidden p-8 text-center text-slate-400 text-xs">
+                        No se encontraron compras registradas.
+                    </div>
+                </div>
+
+            </section>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs">
+            <p>&copy; 2026 TicketPass. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Lógica JavaScript Principal -->
+    <script src="app.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const usuarioRaw = localStorage.getItem('usuarioTicketPass');
+            if (!usuarioRaw) {
+                window.location.href = "index.html";
+                return;
+            }
+
+            const usuario = JSON.parse(usuarioRaw);
+            document.getElementById('usrNombre').textContent = usuario.nombre || "Usuario";
+            document.getElementById('usrEmail').textContent = usuario.email || "correo@ejemplo.com";
+
+            actualizarNavbarUsuario();
+            obtenerHistorialDesdeAPI(usuario.email);
+        });
+
+        async function obtenerHistorialDesdeAPI(email) {
+            const tbody = document.getElementById('tablaCompras');
+            const sinCompras = document.getElementById('sinCompras');
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-8">
+                        <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent mb-2"></div>
+                        <p class="text-slate-500 text-xs">Consultando compras en el servidor...</p>
+                    </td>
+                </tr>
+            `;
+
+            try {
+                // Validar que API_COMPRAS_URL esté definida desde app.js
+                if (typeof API_COMPRAS_URL === 'undefined' || !API_COMPRAS_URL) {
+                    throw new Error("La variable API_COMPRAS_URL no está definida en app.js");
+                }
+
+                const endpoint = `${API_COMPRAS_URL}/compras/usuario?email=${encodeURIComponent(email)}`;
+                
+                const res = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!res.ok) {
+                    throw new Error(`El servidor respondió con estado HTTP: ${res.status}`);
+                }
+
+                const data = await res.json();
+                
+                let compras = [];
+                if (Array.isArray(data)) {
+                    compras = data;
+                } else if (data.body) {
+                    const parsed = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+                    compras = Array.isArray(parsed) ? parsed : [];
+                }
+
+                if (!compras || compras.length === 0) {
+                    tbody.innerHTML = '';
+                    sinCompras.classList.remove('hidden');
+                    return;
+                }
+
+                sinCompras.classList.add('hidden');
+                
+                tbody.innerHTML = compras.map(c => {
+                    const codigoTicket = c.codigo_ticket || c.id || 'N/A';
+                    const tituloEvento = c.titulo_evento || 'Evento TicketPass';
+                    const zona = c.zona || 'General';
+                    const cantidad = c.cantidad || 1;
+                    const precioTotal = parseFloat(c.precio_total || c.total || 0).toFixed(2);
+                    
+                    let fechaStr = 'Sin fecha';
+                    if (c.fecha_compra) {
+                        try {
+                            const d = new Date(c.fecha_compra);
+                            fechaStr = d.toLocaleDateString('es-PE', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                        } catch (e) {
+                            fechaStr = c.fecha_compra;
+                        }
+                    }
+
+                    return `
+                        <tr class="hover:bg-slate-50/80 transition">
+                            <td class="py-4 px-4 text-slate-500">${escapeHTML(fechaStr)}</td>
+                            <td class="py-4 px-4">
+                                <div class="font-bold text-slate-900 text-sm">${escapeHTML(tituloEvento)}</div>
+                                <div class="text-[11px] text-blue-600 font-mono font-semibold">${escapeHTML(codigoTicket)} • <span class="text-slate-500">${escapeHTML(zona)}</span></div>
+                            </td>
+                            <td class="py-4 px-4 text-center font-bold text-slate-700">${cantidad}</td>
+                            <td class="py-4 px-4">
+                                <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-full border border-emerald-200">
+                                    ✓ Compra exitosa
+                                </span>
+                            </td>
+                            <td class="py-4 px-4 text-right font-extrabold text-slate-900 text-sm">S/ ${precioTotal}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error("Error obteniendo historial:", error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-red-500 py-6">
+                            <p class="font-semibold">Ocurrió un error al cargar tus compras.</p>
+                            <p class="text-[11px] text-slate-400 mt-1">${escapeHTML(error.message || 'Error de conexión / CORS')}</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function filtrarCompras() {
+            const q = document.getElementById('inputBuscar').value.toLowerCase();
+            const filas = document.querySelectorAll('#tablaCompras tr');
+            filas.forEach(fila => {
+                const text = fila.innerText.toLowerCase();
+                fila.style.display = text.includes(q) ? '' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>

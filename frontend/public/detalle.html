@@ -3,108 +3,602 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalle de Evento - TicketPass</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Detalle del Evento - TicketPass</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-    <nav class="navbar">
-        <a href="index.html" class="logo-container">
-            <span class="logo-text">TicketPass</span>
+    <!-- HEADER / NAVBAR -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-2">
+                <span class="text-2xl font-black tracking-tight text-blue-600">TicketPass</span>
+            </a>
+            
+            <div class="flex items-center gap-4">
+                <div id="timerContainer" class="hidden flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-200 text-xs font-semibold">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span id="timer">15:00</span>
+                </div>
+
+                <div id="navAuth" class="flex items-center gap-3">
+                    <button onclick="showAuthModal('login')" class="text-sm font-medium text-slate-600 hover:text-blue-600 px-3 py-2 rounded-lg transition">
+                        Iniciar Sesión
+                    </button>
+                    <button onclick="showAuthModal('register')" class="text-sm font-semibold bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition shadow-sm shadow-blue-200">
+                        Registrarse
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+        <a href="index.html" class="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600 font-medium mb-6 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Volver a la lista de eventos
         </a>
-        <div class="nav-links">
-            <a href="index.html">Eventos</a>
-        </div>
-    </nav>
 
-    <div class="container">
-        <div class="detalle-wrapper">
-            <!-- Columna Izquierda: Información del Evento -->
-            <div class="detalle-main">
-                <img id="imgEvento" class="detalle-img" src="" alt="Evento">
-                <h1 id="tituloEvento" style="margin-bottom: 10px;">Cargando evento...</h1>
-                <p id="categoriaEvento" style="color: #2563eb; font-weight: bold; margin-bottom: 15px;"></p>
-                
-                <div style="margin-bottom: 20px; color: #4b5563;">
-                    <p id="lugarEvento">📍 </p>
-                    <p id="fechaEvento">📅 </p>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- DETALLE DEL EVENTO (IZQUIERDA) -->
+            <div class="lg:col-span-7 space-y-6">
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div class="relative h-64 sm:h-80 bg-slate-100">
+                        <img id="eventoImg" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80" alt="Evento" class="w-full h-full object-cover">
+                        <span id="eventoCategoria" class="absolute top-4 left-4 text-xs font-extrabold tracking-wider uppercase bg-white/90 backdrop-blur-md text-blue-700 px-3 py-1 rounded-md shadow-sm">
+                            Cargando...
+                        </span>
+                    </div>
+                    <div class="p-6">
+                        <h1 id="eventoTitulo" class="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-4">Cargando evento...</h1>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-slate-600 border-t border-b border-slate-100 py-4 mb-6">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">📍</div>
+                                <div>
+                                    <span class="block text-xs text-slate-400 font-semibold">Lugar</span>
+                                    <span id="eventoLugar" class="font-medium text-slate-800">...</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">🗓️</div>
+                                <div>
+                                    <span class="block text-xs text-slate-400 font-semibold">Fecha y Hora</span>
+                                    <span id="eventoFecha" class="font-medium text-slate-800">...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 class="text-base font-bold text-slate-900 mb-2">Descripción</h3>
+                        <p id="eventoDescripcion" class="text-sm text-slate-600 leading-relaxed">
+                            Cargando información del evento...
+                        </p>
+                    </div>
                 </div>
-
-                <h3>Descripción</h3>
-                <p id="descripcionEvento" style="margin-top: 10px; line-height: 1.6; color: #374151;">
-                    Cargando información del evento...
-                </p>
             </div>
 
-            <!-- Columna Derecha: Formulario de Compras -->
-            <div class="reserva-card">
-                <div class="timer-box">
-                    Tiempo restante: <span id="timer">15:00</span>
+            <!-- FORMULARIO DE RESERVA Y PAGO (DERECHA) -->
+            <div class="lg:col-span-5">
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm sticky top-24">
+                    <h2 class="text-xl font-bold text-slate-900 mb-6">Reserva y Pago de Entradas</h2>
+
+                    <form id="formCompra" onsubmit="procesarCompra(event)" class="space-y-5">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                Zona Disponible *
+                            </label>
+                            <select id="selectZona" onchange="actualizarResumen()" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white font-medium">
+                                <option value="">Cargando zonas...</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                Cantidad de Entradas *
+                            </label>
+                            <input type="number" id="inputCantidad" min="1" max="10" value="1" onchange="actualizarResumen()" oninput="actualizarResumen()" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium">
+                        </div>
+
+                        <!-- GARANTÍA DE DEVOLUCIÓN -->
+                        <div class="space-y-2 pt-2">
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                Garantía de Devolución
+                            </label>
+                            
+                            <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-300 transition">
+                                <input type="radio" name="seguro" value="12.99" onchange="actualizarResumen()" class="mt-1 text-blue-600 focus:ring-blue-500">
+                                <div class="text-xs">
+                                    <span class="font-bold text-slate-800">Compra Reembolsable</span>
+                                    <span class="text-emerald-600 font-bold ml-1">+ S/ 12.99 / entrada</span>
+                                    <p class="text-slate-500 mt-0.5">Devolución del 100% de tu dinero por enfermedad o imprevistos hasta 48h antes del evento.</p>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-300 transition">
+                                <input type="radio" name="seguro" value="0" checked onchange="actualizarResumen()" class="mt-1 text-blue-600 focus:ring-blue-500">
+                                <div class="text-xs">
+                                    <span class="font-bold text-slate-800">Compra No Reembolsable (Tarifa regular)</span>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- MÉTODOS Y DATOS DE PAGO TARJETA (VISA/MASTERCARD) -->
+                        <div class="pt-2 border-t border-slate-100 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Método de Pago (Tarjeta)</label>
+                                <span class="text-[10px] text-slate-400 font-bold">VISA / Mastercard</span>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Titular de la tarjeta *</label>
+                                <input type="text" id="pagoNombre" required placeholder="Como figura en la tarjeta" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Número de Tarjeta *</label>
+                                <input type="text" id="pagoTarjeta" required maxlength="19" placeholder="4557 0000 0000 0000" oninput="formatTarjeta(this)" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Expiración (MM/AA) *</label>
+                                    <input type="text" id="pagoExp" required placeholder="12/28" maxlength="5" oninput="formatExp(this)" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">CVV *</label>
+                                    <input type="password" id="pagoCvv" required placeholder="123" maxlength="4" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Correo para enviar entradas *</label>
+                                <input type="email" id="pagoEmail" required placeholder="tu@correo.com" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            </div>
+                        </div>
+
+                        <!-- RESUMEN DE PAGO -->
+                        <div class="bg-slate-50 p-4 rounded-xl space-y-2 text-xs border border-slate-200">
+                            <div class="flex justify-between text-slate-600">
+                                <span>Subtotal:</span>
+                                <span id="resumenSubtotal">S/ 0.00</span>
+                            </div>
+                            <div class="flex justify-between text-slate-600">
+                                <span>Garantía Reembolso:</span>
+                                <span id="resumenSeguro">S/ 0.00</span>
+                            </div>
+                            <div class="flex justify-between text-base font-extrabold text-slate-900 pt-2 border-t border-slate-200">
+                                <span>Total a Pagar:</span>
+                                <span id="resumenTotal" class="text-blue-600">S/ 0.00</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="btnComprar" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-md shadow-blue-200 text-sm">
+                            Confirmar y Pagar
+                        </button>
+                    </form>
                 </div>
-
-                <h2>Reserva</h2>
-                <form id="formReserva" style="margin-top: 15px;">
-                    <div class="form-group">
-                        <label for="selectZona">Zona:</label>
-                        <select id="selectZona" class="form-control" required></select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="inputCantidad">Cantidad de Entradas:</label>
-                        <input type="number" id="inputCantidad" class="form-control" min="1" max="10" value="1" required>
-                    </div>
-
-                    <div class="form-group checkbox-group">
-                        <input type="checkbox" id="checkReembolso">
-                        <label for="checkReembolso">Garantía Reembolsable (+S/ 12.99 por entrada)</label>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="inputEmail">Correo Electrónico para envío de entrada:</label>
-                        <input type="email" id="inputEmail" class="form-control" placeholder="tu_correo@gmail.com" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="selectMetodo">Método de Pago:</label>
-                        <select id="selectMetodo" class="form-control" required>
-                            <option value="Tarjeta de Crédito / Débito">Tarjeta de Crédito / Débito</option>
-                            <option value="Yape / Plin">Yape / Plin</option>
-                            <option value="PagoEfectivo">PagoEfectivo</option>
-                        </select>
-                    </div>
-
-                    <div class="total-box">
-                        <span class="total-title">Total a pagar:</span>
-                        <span id="txtTotal" class="total-monto">S/ 0.00</span>
-                    </div>
-
-                    <button type="submit" class="btn-comprar">Confirmar y Comprar</button>
-                </form>
             </div>
         </div>
-    </div>
+    </main>
 
-    <footer>
-        <p>&copy; 2026 TicketPass - Todos los derechos reservados.</p>
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 py-8 border-t border-slate-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs sm:text-sm">
+            <p>&copy; 2026 TicketPass. Todos los derechos reservados.</p>
+        </div>
     </footer>
 
-    <!-- MODAL HTML PERSONALIZADO -->
-    <div id="modalCompra" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-icon">🎉</div>
-            <h2 style="color: #111827; margin-bottom: 8px;">¡COMPRA EXITOSA!</h2>
-            <p style="color: #6b7280; font-size: 14px;">Tu transacción ha sido procesada con éxito.</p>
-            
-            <div class="modal-details">
-                <p style="margin-bottom: 6px;"><strong>Código de Ticket:</strong> <span id="modalCodigo" style="color: #2563eb; font-weight: bold;"></span></p>
-                <p><strong>Monto Total:</strong> <span id="modalMonto" style="font-weight: bold;"></span></p>
-            </div>
+    <!-- MODAL AUTH -->
+    <div id="authModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold p-1">&times;</button>
+            <h3 id="authTitle" class="text-2xl font-bold text-slate-900 mb-2">Iniciar Sesión</h3>
+            <p id="authSubtitle" class="text-sm text-slate-500 mb-6">Ingresa tus credenciales para continuar</p>
 
-            <p class="modal-note">Revisa tu bandeja de entrada para ver el detalle de la entrada.</p>
-            <button id="btnCerrarModal" class="btn-modal">Aceptar</button>
+            <form id="formAuth" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div id="nombreFieldContainer" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre Completo</label>
+                    <input type="text" id="authNombre" placeholder="Juan Pérez" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Correo Electrónico</label>
+                    <input type="email" id="authEmail" required placeholder="correo@ejemplo.com" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Contraseña</label>
+                    <input type="password" id="authPassword" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <button type="submit" id="authSubmitBtn" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition shadow-md shadow-blue-100 text-sm">
+                    Ingresar
+                </button>
+            </form>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- MODAL ESTADO / EXITO -->
+    <div id="statusModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
+            <div id="statusIcon" class="w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-4"></div>
+            <h3 id="statusTitle" class="text-lg font-bold text-slate-900 mb-2"></h3>
+            <p id="statusMessage" class="text-sm text-slate-600 mb-6"></p>
+            <button onclick="closeStatusModal()" class="w-full bg-slate-900 text-white font-semibold py-2.5 rounded-xl hover:bg-slate-800 text-sm transition">
+                Aceptar
+            </button>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT EMBEBIDO -->
+    <script>
+        const API_EVENTOS_URL = "https://k9ai3zejv8.execute-api.us-east-1.amazonaws.com/dev";
+        const API_COMPRAS_URL = "https://2g26jo250g.execute-api.us-east-1.amazonaws.com/dev";
+
+        let eventoActual = null;
+        let zonasEvento = [];
+        let timerInterval = null;
+        let redirectOnClose = false; // Variable para controlar la redirección al cerrar el modal
+
+        document.addEventListener('DOMContentLoaded', () => {
+            actualizarNavbarUsuario();
+            cargarDetalleEvento();
+            iniciarTemporizador(15 * 60);
+            
+            const usuarioRaw = localStorage.getItem('usuarioTicketPass');
+            if (usuarioRaw) {
+                const user = JSON.parse(usuarioRaw);
+                const emailInput = document.getElementById('pagoEmail');
+                const nombreInput = document.getElementById('pagoNombre');
+                if (emailInput && user.email) emailInput.value = user.email;
+                if (nombreInput && user.nombre) nombreInput.value = user.nombre;
+            }
+        });
+
+        // Formateadores para inputs de tarjeta
+        function formatTarjeta(input) {
+            let val = input.value.replace(/\D/g, '');
+            val = val.replace(/(.{4})/g, '$1 ').trim();
+            input.value = val;
+        }
+
+        function formatExp(input) {
+            let val = input.value.replace(/\D/g, '');
+            if (val.length >= 2) {
+                val = val.substring(0, 2) + '/' + val.substring(2, 4);
+            }
+            input.value = val;
+        }
+
+        async function cargarDetalleEvento() {
+            const params = new URLSearchParams(window.location.search);
+            const eventoId = params.get('id');
+
+            if (!eventoId) {
+                alert("Evento no especificado");
+                window.location.href = "index.html";
+                return;
+            }
+
+            try {
+                let res = await fetch(`${API_EVENTOS_URL}/eventos/${eventoId}`).catch(() => null);
+                if (!res || !res.ok) {
+                    res = await fetch(`${API_EVENTOS_URL}/eventos?id=${eventoId}`).catch(() => null);
+                }
+
+                if (!res || !res.ok) throw new Error("No se pudo obtener el detalle del evento");
+
+                const data = await res.json();
+                eventoActual = data.evento || data.item || data;
+
+                if (eventoActual.body) {
+                    eventoActual = typeof eventoActual.body === 'string' ? JSON.parse(eventoActual.body) : eventoActual.body;
+                }
+
+                renderDetalle();
+                cargarZonas(eventoId);
+            } catch (error) {
+                console.error("Error al cargar detalle:", error);
+                document.getElementById('eventoTitulo').textContent = "Error al cargar evento";
+                document.getElementById('eventoDescripcion').textContent = "No pudimos obtener la información requerida desde el servidor.";
+            }
+        }
+
+        function renderDetalle() {
+            if (!eventoActual) return;
+
+            document.getElementById('eventoTitulo').textContent = eventoActual.titulo || eventoActual.nombre || "Evento sin título";
+            document.getElementById('eventoCategoria').textContent = eventoActual.categoria || "GENERAL";
+            document.getElementById('eventoLugar').textContent = eventoActual.lugar || eventoActual.ubicacion || "Por confirmar";
+            document.getElementById('eventoFecha').textContent = `${eventoActual.fecha || 'Por confirmar'} - ${eventoActual.hora || '19:00 hrs'}`;
+            document.getElementById('eventoDescripcion').textContent = eventoActual.descripcion || "Disfruta de una experiencia inolvidable. Compra tus entradas con la garantía oficial de TicketPass.";
+            
+            if (eventoActual.imagen || eventoActual.imagen_url) {
+                document.getElementById('eventoImg').src = eventoActual.imagen || eventoActual.imagen_url;
+            }
+        }
+
+        async function cargarZonas(eventoId) {
+            const select = document.getElementById('selectZona');
+            try {
+                let res = await fetch(`${API_EVENTOS_URL}/zonas?evento_id=${eventoId}`).catch(() => null);
+                if (!res || !res.ok) {
+                    res = await fetch(`${API_EVENTOS_URL}/eventos/${eventoId}/zonas`).catch(() => null);
+                }
+
+                if (res && res.ok) {
+                    const data = await res.json();
+                    zonasEvento = Array.isArray(data) ? data : (data.zonas || data.items || []);
+                } else {
+                    zonasEvento = [
+                        { id: 'z1', nombre: 'VIP', precio: 150.00 },
+                        { id: 'z2', nombre: 'Preferencial', precio: 80.00 },
+                        { id: 'z3', nombre: 'General', precio: 40.00 }
+                    ];
+                }
+
+                if (zonasEvento.length === 0) {
+                    zonasEvento = [
+                        { id: 'z1', nombre: 'VIP', precio: 150.00 },
+                        { id: 'z2', nombre: 'General', precio: 50.00 }
+                    ];
+                }
+
+                select.innerHTML = zonasEvento.map(z => {
+                    const zid = z.id || z.zona_id || z.nombre;
+                    const znombre = z.nombre || 'Zona Standard';
+                    const zprecio = parseFloat(z.precio || z.precio_base || 50).toFixed(2);
+                    return `<option value="${zid}" data-precio="${zprecio}">${znombre} - S/ ${zprecio}</option>`;
+                }).join('');
+
+                actualizarResumen();
+            } catch (error) {
+                console.error("Error al cargar zonas:", error);
+                select.innerHTML = `<option value="gen" data-precio="50.00">General - S/ 50.00</option>`;
+                actualizarResumen();
+            }
+        }
+
+        function actualizarResumen() {
+            const selectZona = document.getElementById('selectZona');
+            const inputCant = document.getElementById('inputCantidad');
+            const seguroSelected = document.querySelector('input[name="seguro"]:checked');
+
+            if (!selectZona || !selectZona.selectedOptions[0]) return;
+
+            const precioZona = parseFloat(selectZona.selectedOptions[0].getAttribute('data-precio') || "0");
+            const cantidad = parseInt(inputCant.value) || 1;
+            const precioSeguroUnitario = parseFloat(seguroSelected ? seguroSelected.value : "0");
+
+            const subtotal = precioZona * cantidad;
+            const seguroTotal = precioSeguroUnitario * cantidad;
+            const total = subtotal + seguroTotal;
+
+            document.getElementById('resumenSubtotal').textContent = `S/ ${subtotal.toFixed(2)}`;
+            document.getElementById('resumenSeguro').textContent = `S/ ${seguroTotal.toFixed(2)}`;
+            document.getElementById('resumenTotal').textContent = `S/ ${total.toFixed(2)}`;
+        }
+
+        function iniciarTemporizador(duracionSegundos) {
+            const container = document.getElementById('timerContainer');
+            const display = document.getElementById('timer');
+            if (container) container.classList.remove('hidden');
+
+            let timer = duracionSegundos;
+            if (timerInterval) clearInterval(timerInterval);
+
+            timerInterval = setInterval(() => {
+                const minutos = parseInt(timer / 60, 10);
+                const segundos = parseInt(timer % 60, 10);
+
+                const minStr = minutos < 10 ? "0" + minutos : minutos;
+                const segStr = segundos < 10 ? "0" + segundos : segundos;
+
+                if (display) display.textContent = `${minStr}:${segStr}`;
+
+                if (--timer < 0) {
+                    clearInterval(timerInterval);
+                    showModal(false, "Tiempo Agotado", "Tu tiempo para completar la reserva ha expirado.", true);
+                }
+            }, 1000);
+        }
+
+        async function procesarCompra(e) {
+            e.preventDefault();
+
+            const btnComprar = document.getElementById('btnComprar');
+            btnComprar.disabled = true;
+            btnComprar.innerHTML = `<span class="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></span> Procesando pago...`;
+
+            const selectZona = document.getElementById('selectZona');
+            const zonaNombre = selectZona.selectedOptions[0] ? selectZona.selectedOptions[0].text.split(' - ')[0] : "General";
+            const cantidad = parseInt(document.getElementById('inputCantidad').value) || 1;
+            const email = document.getElementById('pagoEmail').value.trim();
+
+            // Obtener total formateado desde la interfaz
+            const totalTexto = document.getElementById('resumenTotal').textContent.replace('S/', '').trim();
+            const precioTotal = parseFloat(totalTexto) || 0.0;
+
+            const seguroSelected = document.querySelector('input[name="seguro"]:checked');
+            const esReembolsable = seguroSelected ? parseFloat(seguroSelected.value) > 0 : false;
+
+            const params = new URLSearchParams(window.location.search);
+            const eventoId = params.get('id');
+
+            // PAYLOAD ALINEADO CON HANDLER.PY
+            const payload = {
+                evento_id: eventoId,
+                usuario_email: email,
+                email: email,
+                titulo_evento: eventoActual ? (eventoActual.titulo || eventoActual.nombre) : "Evento TicketPass",
+                zona: zonaNombre,
+                cantidad: cantidad,
+                precio_total: precioTotal,
+                reembolsable: esReembolsable
+            };
+
+            try {
+                // RUTA CORRECTA: /comprar (coincide con serverless.yml)
+                const response = await fetch(`${API_COMPRAS_URL}/comprar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || `Error del servidor HTTP: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                // Guardar copia local si es necesario
+                let comprasPrevias = JSON.parse(localStorage.getItem('misComprasTicketPass') || '[]');
+                comprasPrevias.unshift(result.compra || payload);
+                localStorage.setItem('misComprasTicketPass', JSON.stringify(comprasPrevias));
+
+                showModal(true, "¡Compra Procesada!", `Entradas confirmadas en DynamoDB y enviadas a ${email}`);
+
+            } catch (err) {
+                console.error("Error al procesar compra en la API:", err);
+                showModal(false, "Error en el Pago", `No se pudo registrar la compra: ${err.message}`);
+            } finally {
+                btnComprar.disabled = false;
+                btnComprar.textContent = "Confirmar y Pagar";
+            }
+        }
+
+        let currentAuthMode = 'login';
+        function showAuthModal(mode = 'login') {
+            currentAuthMode = mode;
+            const modal = document.getElementById('authModal');
+            const title = document.getElementById('authTitle');
+            const subtitle = document.getElementById('authSubtitle');
+            const submitBtn = document.getElementById('authSubmitBtn');
+            const nombreContainer = document.getElementById('nombreFieldContainer');
+
+            if (mode === 'register') {
+                title.textContent = "Crear Cuenta";
+                subtitle.textContent = "Regístrate para comprar tus entradas fácilmente";
+                submitBtn.textContent = "Registrarse";
+                nombreContainer.classList.remove('hidden');
+            } else {
+                title.textContent = "Iniciar Sesión";
+                subtitle.textContent = "Ingresa tus credenciales para continuar";
+                submitBtn.textContent = "Ingresar";
+                nombreContainer.classList.add('hidden');
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            const modal = document.getElementById('authModal');
+            const form = document.getElementById('formAuth');
+            if (modal) modal.classList.add('hidden');
+            if (form) form.reset();
+        }
+
+        function handleAuthSubmit(event) {
+            event.preventDefault();
+            const emailInput = document.getElementById('authEmail');
+            const nombreInput = document.getElementById('authNombre');
+            const email = emailInput ? emailInput.value.trim() : "";
+            const nombreVal = nombreInput ? nombreInput.value.trim() : "";
+            let nombreFinal = "Usuario";
+
+            if (currentAuthMode === 'register' && nombreVal) {
+                nombreFinal = nombreVal;
+            } else if (email) {
+                const partes = email.split('@');
+                nombreFinal = partes[0].charAt(0).toUpperCase() + partes[0].slice(1);
+            }
+
+            localStorage.setItem('usuarioTicketPass', JSON.stringify({ email: email, nombre: nombreFinal }));
+            closeAuthModal();
+            actualizarNavbarUsuario();
+            
+            const pEmail = document.getElementById('pagoEmail');
+            const pNombre = document.getElementById('pagoNombre');
+            if (pEmail) pEmail.value = email;
+            if (pNombre) pNombre.value = nombreFinal;
+
+            showModal(true, "¡Bienvenido!", `Hola, ${nombreFinal}. Has iniciado sesión correctamente.`, false);
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('usuarioTicketPass');
+            actualizarNavbarUsuario();
+            showModal(true, "Sesión Cerrada", "Has cerrado sesión correctamente.", true);
+        }
+
+        function actualizarNavbarUsuario() {
+            const navAuth = document.getElementById('navAuth');
+            if (!navAuth) return;
+            const usuarioRaw = localStorage.getItem('usuarioTicketPass');
+
+            if (usuarioRaw) {
+                const usuario = JSON.parse(usuarioRaw);
+                navAuth.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <a href="historial.html" class="text-xs font-semibold text-slate-600 hover:text-blue-600 px-3 py-2 rounded-xl transition border border-slate-200 bg-white">
+                            Mis Compras
+                        </a>
+                        <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="text-xs font-semibold text-slate-700">Hola, <strong class="text-blue-600 font-bold">${usuario.nombre}</strong></span>
+                        </div>
+                        <button onclick="cerrarSesion()" class="text-xs text-red-600 hover:text-red-700 font-medium bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl transition border border-red-100">
+                            Cerrar Sesión
+                        </button>
+                    </div>
+                `;
+            } else {
+                navAuth.innerHTML = `
+                    <button onclick="showAuthModal('login')" class="text-sm font-medium text-slate-600 hover:text-blue-600 px-3 py-2 rounded-lg transition">
+                        Iniciar Sesión
+                    </button>
+                    <button onclick="showAuthModal('register')" class="text-sm font-semibold bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition shadow-sm shadow-blue-200">
+                        Registrarse
+                    </button>
+                `;
+            }
+        }
+
+        function showModal(exito, titulo, mensaje, redirigir = false) {
+            const modal = document.getElementById('statusModal');
+            const icon = document.getElementById('statusIcon');
+            const title = document.getElementById('statusTitle');
+            const msg = document.getElementById('statusMessage');
+
+            if (!modal) return;
+
+            redirectOnClose = redirigir;
+
+            if (exito) {
+                icon.className = "w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-4 bg-emerald-100 text-emerald-600 text-2xl font-bold";
+                icon.textContent = "✓";
+            } else {
+                icon.className = "w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-4 bg-red-100 text-red-600 text-2xl font-bold";
+                icon.textContent = "✕";
+            }
+
+            title.textContent = titulo;
+            msg.textContent = mensaje;
+            modal.classList.remove('hidden');
+        }
+
+        function closeStatusModal() {
+            const modal = document.getElementById('statusModal');
+            if (modal) modal.classList.add('hidden');
+            
+            if (redirectOnClose) {
+                window.location.href = "index.html";
+            }
+        }
+    </script>
 </body>
 </html>

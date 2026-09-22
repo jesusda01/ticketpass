@@ -1,5 +1,10 @@
 service: ticketpass-frontend
 
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+
 plugins:
   - serverless-s3-sync
 
@@ -7,10 +12,6 @@ custom:
   s3Sync:
     - bucketName: ticketpass-app-utec
       localDir: public
-
-provider:
-  name: aws
-  region: us-east-1
 
 resources:
   Resources:

@@ -3,23 +3,38 @@ service: ticketpass-service-compras
 provider:
   name: aws
   runtime: python3.11
-  stage: dev
   region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  stackTags: {}
   iam:
     role: arn:aws:iam::503186507833:role/LabRole
+  environment:
+    COMPRAS_TABLE: ticketpass_compras_${self:provider.stage}
+    SMTP_HOST: "smtp.gmail.com"
+    SMTP_PORT: "587"
+    SMTP_EMAIL: "soporteticketpass@gmail.com"
+    SMTP_PASSWORD: "rnuzwhmymskyekxj"
 
 functions:
   procesarCompra:
-    handler: handler.procesar_compra
+    handler: handler.procesarCompra
     events:
       - http:
-          path: /comprar
+          path: comprar
           method: post
+          cors: true
+
+  obtenerComprasPorUsuario:
+    handler: handler.obtenerComprasPorUsuario
+    events:
+      - http:
+          path: compras/usuario
+          method: get
           cors: true
 
 resources:
   Resources:
-    TablaCompras:
+    ComprasTable:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: ticketpass_compras_${self:provider.stage}
@@ -30,3 +45,25 @@ resources:
           - AttributeName: codigo_ticket
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
+
+    GatewayResponseDefault4XX:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+
+    GatewayResponseDefault5XX:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+        ResponseType: DEFAULT_5XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
