@@ -11,13 +11,14 @@ provider:
   environment:
     COMPRAS_TABLE: ticketpass_compras_${self:provider.stage}
     SMTP_HOST: "smtp.gmail.com"
-    SMTP_PORT: "587"
+    SMTP_PORT: "465"
     SMTP_EMAIL: "soporteticketpass@gmail.com"
-    SMTP_PASSWORD: "rnuzwhmymskyekxj"
+    SMTP_PASSWORD: "aywlcimdpequlkly"
 
 functions:
   procesarCompra:
     handler: handler.procesarCompra
+    timeout: 15
     events:
       - http:
           path: comprar
@@ -26,6 +27,7 @@ functions:
 
   obtenerComprasPorUsuario:
     handler: handler.obtenerComprasPorUsuario
+    timeout: 10
     events:
       - http:
           path: compras/usuario

@@ -54,7 +54,7 @@ async function cargarEventos() {
     `;
 
     try {
-        const res = await fetch(`${API_EVENTOS}/eventos`);
+        const res = await fetch(`${API_EVENTOS_URL}/eventos`);
 
         if (!res.ok) {
             throw new Error(`Error en API Gateway (${res.status})`);

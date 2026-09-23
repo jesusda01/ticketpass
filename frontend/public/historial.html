@@ -10,6 +10,7 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
+    <link rel="shortcut icon" href="#">
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
@@ -103,6 +104,24 @@
                         </table>
                     </div>
 
+                    <!-- CONTROLES DE PAGINACIÓN -->
+                    <div id="contenedorPaginacion" class="flex flex-col sm:flex-row items-center justify-between border-t border-slate-100 px-4 py-3 gap-3 bg-slate-50/50">
+                        <div class="text-xs text-slate-500">
+                            Mostrando <span id="pagInicio" class="font-bold text-slate-700">0</span> a <span id="pagFin" class="font-bold text-slate-700">0</span> de <span id="pagTotal" class="font-bold text-slate-700">0</span> compras
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="btnAnterior" onclick="cambiarPagina(-1)" class="px-3 py-1.5 border border-slate-200 text-xs font-semibold rounded-lg text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm">
+                                ← Anterior
+                            </button>
+                            <span id="indicadorPagina" class="px-2 text-xs font-bold text-slate-600">
+                                Página 1 de 1
+                            </span>
+                            <button id="btnSiguiente" onclick="cambiarPagina(1)" class="px-3 py-1.5 border border-slate-200 text-xs font-semibold rounded-lg text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm">
+                                Siguiente →
+                            </button>
+                        </div>
+                    </div>
+
                     <div id="sinCompras" class="hidden p-8 text-center text-slate-400 text-xs">
                         No se encontraron compras registradas.
                     </div>
@@ -123,6 +142,12 @@
     <script src="app.js"></script>
 
     <script>
+        // Variables globales para la paginación y filtrado
+        let comprasGlobales = [];
+        let comprasFiltradas = [];
+        let paginaActual = 1;
+        const comprasPorPagina = 5; // Cantidad de compras por página
+
         document.addEventListener('DOMContentLoaded', () => {
             const usuarioRaw = localStorage.getItem('usuarioTicketPass');
             if (!usuarioRaw) {
@@ -152,7 +177,6 @@
             `;
 
             try {
-                // Validar que API_COMPRAS_URL esté definida desde app.js
                 if (typeof API_COMPRAS_URL === 'undefined' || !API_COMPRAS_URL) {
                     throw new Error("La variable API_COMPRAS_URL no está definida en app.js");
                 }
@@ -161,9 +185,7 @@
                 
                 const res = await fetch(endpoint, {
                     method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
+                    headers: { 'Accept': 'application/json' }
                 });
 
                 if (!res.ok) {
@@ -183,51 +205,18 @@
                 if (!compras || compras.length === 0) {
                     tbody.innerHTML = '';
                     sinCompras.classList.remove('hidden');
+                    document.getElementById('contenedorPaginacion').classList.add('hidden');
                     return;
                 }
 
                 sinCompras.classList.add('hidden');
+                document.getElementById('contenedorPaginacion').classList.remove('hidden');
                 
-                tbody.innerHTML = compras.map(c => {
-                    const codigoTicket = c.codigo_ticket || c.id || 'N/A';
-                    const tituloEvento = c.titulo_evento || 'Evento TicketPass';
-                    const zona = c.zona || 'General';
-                    const cantidad = c.cantidad || 1;
-                    const precioTotal = parseFloat(c.precio_total || c.total || 0).toFixed(2);
-                    
-                    let fechaStr = 'Sin fecha';
-                    if (c.fecha_compra) {
-                        try {
-                            const d = new Date(c.fecha_compra);
-                            fechaStr = d.toLocaleDateString('es-PE', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            });
-                        } catch (e) {
-                            fechaStr = c.fecha_compra;
-                        }
-                    }
-
-                    return `
-                        <tr class="hover:bg-slate-50/80 transition">
-                            <td class="py-4 px-4 text-slate-500">${escapeHTML(fechaStr)}</td>
-                            <td class="py-4 px-4">
-                                <div class="font-bold text-slate-900 text-sm">${escapeHTML(tituloEvento)}</div>
-                                <div class="text-[11px] text-blue-600 font-mono font-semibold">${escapeHTML(codigoTicket)} • <span class="text-slate-500">${escapeHTML(zona)}</span></div>
-                            </td>
-                            <td class="py-4 px-4 text-center font-bold text-slate-700">${cantidad}</td>
-                            <td class="py-4 px-4">
-                                <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-full border border-emerald-200">
-                                    ✓ Compra exitosa
-                                </span>
-                            </td>
-                            <td class="py-4 px-4 text-right font-extrabold text-slate-900 text-sm">S/ ${precioTotal}</td>
-                        </tr>
-                    `;
-                }).join('');
+                // Guardar en la variable global y renderizar
+                comprasGlobales = compras;
+                comprasFiltradas = compras;
+                paginaActual = 1;
+                renderizarTablaPaginada();
 
             } catch (error) {
                 console.error("Error obteniendo historial:", error);
@@ -242,13 +231,105 @@
             }
         }
 
+        function renderizarTablaPaginada() {
+            const tbody = document.getElementById('tablaCompras');
+            const sinCompras = document.getElementById('sinCompras');
+            const totalCompras = comprasFiltradas.length;
+
+            if (totalCompras === 0) {
+                tbody.innerHTML = '';
+                sinCompras.classList.remove('hidden');
+                actualizarPaginador(0, 0, 0);
+                return;
+            }
+
+            sinCompras.classList.add('hidden');
+
+            const totalPaginas = Math.ceil(totalCompras / comprasPorPagina) || 1;
+            if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+            if (paginaActual < 1) paginaActual = 1;
+
+            const inicio = (paginaActual - 1) * comprasPorPagina;
+            const fin = Math.min(inicio + comprasPorPagina, totalCompras);
+            const comprasPagina = comprasFiltradas.slice(inicio, fin);
+
+            tbody.innerHTML = comprasPagina.map(c => {
+                const codigoTicket = c.codigo_ticket || c.id || 'N/A';
+                const tituloEvento = c.titulo_evento || 'Evento TicketPass';
+                const zona = c.zona || 'General';
+                const cantidad = c.cantidad || 1;
+                const precioTotal = parseFloat(c.precio_total || c.total || 0).toFixed(2);
+                
+                let fechaStr = 'Sin fecha';
+                if (c.fecha_compra) {
+                    try {
+                        const d = new Date(c.fecha_compra);
+                        fechaStr = d.toLocaleDateString('es-PE', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    } catch (e) {
+                        fechaStr = c.fecha_compra;
+                    }
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-4 px-4 text-slate-500">${escapeHTML(fechaStr)}</td>
+                        <td class="py-4 px-4">
+                            <div class="font-bold text-slate-900 text-sm">${escapeHTML(tituloEvento)}</div>
+                            <div class="text-[11px] text-blue-600 font-mono font-semibold">${escapeHTML(codigoTicket)} • <span class="text-slate-500">${escapeHTML(zona)}</span></div>
+                        </td>
+                        <td class="py-4 px-4 text-center font-bold text-slate-700">${cantidad}</td>
+                        <td class="py-4 px-4">
+                            <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-full border border-emerald-200">
+                                ✓ Compra exitosa
+                            </span>
+                        </td>
+                        <td class="py-4 px-4 text-right font-extrabold text-slate-900 text-sm">S/ ${precioTotal}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            actualizarPaginador(inicio + 1, fin, totalCompras);
+        }
+
+        function cambiarPagina(direccion) {
+            paginaActual += direccion;
+            renderizarTablaPaginada();
+        }
+
+        function actualizarPaginador(inicio, fin, total) {
+            const totalPaginas = Math.ceil(total / comprasPorPagina) || 1;
+
+            document.getElementById('pagInicio').textContent = total === 0 ? 0 : inicio;
+            document.getElementById('pagFin').textContent = fin;
+            document.getElementById('pagTotal').textContent = total;
+            document.getElementById('indicadorPagina').textContent = `Página ${paginaActual} de ${totalPaginas}`;
+
+            document.getElementById('btnAnterior').disabled = (paginaActual <= 1);
+            document.getElementById('btnSiguiente').disabled = (paginaActual >= totalPaginas || total === 0);
+        }
+
         function filtrarCompras() {
-            const q = document.getElementById('inputBuscar').value.toLowerCase();
-            const filas = document.querySelectorAll('#tablaCompras tr');
-            filas.forEach(fila => {
-                const text = fila.innerText.toLowerCase();
-                fila.style.display = text.includes(q) ? '' : 'none';
-            });
+            const q = document.getElementById('inputBuscar').value.toLowerCase().trim();
+
+            if (!q) {
+                comprasFiltradas = comprasGlobales;
+            } else {
+                comprasFiltradas = comprasGlobales.filter(c => {
+                    const evento = (c.titulo_evento || '').toLowerCase();
+                    const ticket = (c.codigo_ticket || c.id || '').toLowerCase();
+                    const zona = (c.zona || '').toLowerCase();
+                    return evento.includes(q) || ticket.includes(q) || zona.includes(q);
+                });
+            }
+
+            paginaActual = 1;
+            renderizarTablaPaginada();
         }
     </script>
 </body>

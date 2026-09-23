@@ -10,6 +10,7 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
+    <link rel="shortcut icon" href="#">
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
@@ -40,11 +41,6 @@
 
     <!-- CONTENIDO PRINCIPAL -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
-        <a href="index.html" class="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600 font-medium mb-6 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            Volver a la lista de eventos
-        </a>
-
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
             <!-- DETALLE DEL EVENTO (IZQUIERDA) -->
@@ -242,7 +238,7 @@
         let eventoActual = null;
         let zonasEvento = [];
         let timerInterval = null;
-        let redirectOnClose = false; // Variable para controlar la redirección al cerrar el modal
+        let redirectOnClose = false;
 
         document.addEventListener('DOMContentLoaded', () => {
             actualizarNavbarUsuario();
@@ -419,7 +415,6 @@
             const cantidad = parseInt(document.getElementById('inputCantidad').value) || 1;
             const email = document.getElementById('pagoEmail').value.trim();
 
-            // Obtener total formateado desde la interfaz
             const totalTexto = document.getElementById('resumenTotal').textContent.replace('S/', '').trim();
             const precioTotal = parseFloat(totalTexto) || 0.0;
 
@@ -429,21 +424,51 @@
             const params = new URLSearchParams(window.location.search);
             const eventoId = params.get('id');
 
-            // PAYLOAD ALINEADO CON HANDLER.PY
+            // =========================================================================
+            // EXTRACCIÓN DIRECTA DESDE LA TARJETA EN PANTALLA
+            // =========================================================================
+            
+            // 1. Obtener el texto del lugar
+            const elemLugar = document.querySelector('.event-location') || 
+                            document.getElementById('detLugar') || 
+                            document.getElementById('lugarEvento');
+            let lugarTexto = elemLugar ? elemLugar.innerText.trim() : '';
+
+            // 2. Obtener el texto unificado de fecha y hora directamente (ej. "10 Nov 2026 - 10:00 hrs")
+            const elemFechaHora = document.querySelector('.event-date') || 
+                                document.getElementById('detFechaHora') || 
+                                document.getElementById('fechaEvento');
+            let fechaHoraTexto = elemFechaHora ? elemFechaHora.innerText.trim() : '';
+
+            // =========================================================================
+            // CONSTRUCCIÓN DEL PAYLOAD (SIN PARÁMETRO HORA)
+            // =========================================================================
             const payload = {
                 evento_id: eventoId,
                 usuario_email: email,
                 email: email,
-                titulo_evento: eventoActual ? (eventoActual.titulo || eventoActual.nombre) : "Evento TicketPass",
+                titulo_evento: (typeof eventoActual !== 'undefined' && eventoActual && (eventoActual.titulo || eventoActual.nombre))
+                    ? (eventoActual.titulo || eventoActual.nombre)
+                    : (document.querySelector('h1')?.innerText || "Evento TicketPass"),
                 zona: zonaNombre,
                 cantidad: cantidad,
                 precio_total: precioTotal,
-                reembolsable: esReembolsable
+                reembolsable: esReembolsable,
+
+                lugar_evento: (typeof eventoActual !== 'undefined' && eventoActual && (eventoActual.lugar || eventoActual.ubicacion || eventoActual.lugar_evento))
+                    ? (eventoActual.lugar || eventoActual.ubicacion || eventoActual.lugar_evento)
+                    : (lugarTexto || 'Por confirmar'),
+
+                // Se envía la cadena completa directamente
+                fecha_evento: (typeof eventoActual !== 'undefined' && eventoActual && (eventoActual.fecha || eventoActual.fecha_evento))
+                    ? (eventoActual.fecha || eventoActual.fecha_evento)
+                    : (fechaHoraTexto || 'Por confirmar')
             };
 
             try {
-                // RUTA CORRECTA: /comprar (coincide con serverless.yml)
-                const response = await fetch(`${API_COMPRAS_URL}/comprar`, {
+                const endpointUrl = `${API_COMPRAS_URL.replace(/\/$/, '')}/comprar`;
+
+                const response = await fetch(endpointUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -455,17 +480,17 @@
                 }
 
                 const result = await response.json();
-                
-                // Guardar copia local si es necesario
+
                 let comprasPrevias = JSON.parse(localStorage.getItem('misComprasTicketPass') || '[]');
                 comprasPrevias.unshift(result.compra || payload);
                 localStorage.setItem('misComprasTicketPass', JSON.stringify(comprasPrevias));
 
-                showModal(true, "¡Compra Procesada!", `Entradas confirmadas en DynamoDB y enviadas a ${email}`);
+                showModal(true, "¡Compra Procesada!", `Entradas confirmadas y enviadas a ${email}`, true);
 
-            } catch (err) {
-                console.error("Error al procesar compra en la API:", err);
-                showModal(false, "Error en el Pago", `No se pudo registrar la compra: ${err.message}`);
+            } catch (error) {
+                console.error("Error procesando compra:", error);
+                showModal(false, "Error en la compra", "No se pudo procesar la transacción ni enviar el correo. Intenta nuevamente.");
+
             } finally {
                 btnComprar.disabled = false;
                 btnComprar.textContent = "Confirmar y Pagar";
@@ -574,8 +599,6 @@
             const title = document.getElementById('statusTitle');
             const msg = document.getElementById('statusMessage');
 
-            if (!modal) return;
-
             redirectOnClose = redirigir;
 
             if (exito) {
@@ -594,7 +617,7 @@
         function closeStatusModal() {
             const modal = document.getElementById('statusModal');
             if (modal) modal.classList.add('hidden');
-            
+
             if (redirectOnClose) {
                 window.location.href = "index.html";
             }

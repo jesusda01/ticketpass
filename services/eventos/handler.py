@@ -31,7 +31,7 @@ def respuesta_json(status_code, body):
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Credentials": True,
             "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-            "Access-Control-Allow-Methods": "GET,OPTIONS",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
             "Content-Type": "application/json"
         },
         "body": json.dumps(body, cls=DecimalEncoder, ensure_ascii=False)
@@ -76,6 +76,26 @@ def obtener_evento_por_id(event, context):
             return respuesta_json(404, {"detail": "Evento no encontrado"})
 
         return respuesta_json(200, item)
+    except Exception as e:
+        return respuesta_json(500, {"error": str(e)})
+
+def obtener_zonas(event, context):
+    try:
+        params = event.get('queryStringParameters') or {}
+        evento_id = params.get('evento_id') or params.get('id')
+
+        if not evento_id:
+            return respuesta_json(400, {"detail": "Falta el parámetro evento_id"})
+
+        response = tabla_eventos.get_item(Key={'id': str(evento_id)})
+        item = response.get('Item')
+
+        if not item:
+            return respuesta_json(404, {"detail": "Evento no encontrado"})
+
+        # Extrae la lista de zonas asociadas al evento
+        zonas = item.get('zonas', [])
+        return respuesta_json(200, zonas)
     except Exception as e:
         return respuesta_json(500, {"error": str(e)})
 
@@ -314,7 +334,6 @@ def precargar_eventos(event, context):
     try:
         with tabla_eventos.batch_writer() as batch:
             for ev in EVENTOS_INICIALES:
-                # Convertir los precios flotantes a Decimal antes de enviar a DynamoDB
                 ev_decimal = convertir_floats_a_decimal(ev)
                 batch.put_item(Item=ev_decimal)
 
