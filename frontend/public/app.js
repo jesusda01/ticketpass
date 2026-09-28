@@ -1,8 +1,9 @@
 // =========================================================
-// CONFIGURACIÓN API (MICROSERVICIOS SERVERLESS)
+// CONFIGURACIÓN API (MICROSERVICIOS SERVERLESS AWS)
 // =========================================================
 const API_EVENTOS_URL = "https://k9ai3zejv8.execute-api.us-east-1.amazonaws.com/dev";
 const API_COMPRAS_URL = "https://2g26jo250g.execute-api.us-east-1.amazonaws.com/dev";
+const API_USUARIOS_URL = 'https://xihlkly0kg.execute-api.us-east-1.amazonaws.com/dev';
 
 let todosLosEventos = [];
 
@@ -180,13 +181,13 @@ function filtrarEventos() {
 }
 
 // =========================================================
-// HISTORIAL DE COMPRAS
+// HISTORIAL DE COMPRAS (DYNAMODB)
 // =========================================================
 async function cargarHistorialCompras() {
     const tbody = document.getElementById('tablaHistorial');
     if (!tbody) return;
 
-    const usuarioRaw = localStorage.getItem('usuarioTicketPass');
+    const usuarioRaw = localStorage.getItem('ticketpass_user');
     if (!usuarioRaw) {
         tbody.innerHTML = `<tr><td colspan="6" class="text-center text-amber-600 py-4">Debes iniciar sesión para consultar tu historial.</td></tr>`;
         return;
@@ -198,7 +199,7 @@ async function cargarHistorialCompras() {
         <tr>
             <td colspan="6" class="text-center py-8">
                 <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent mb-2"></div>
-                <p class="text-slate-500 text-xs">Cargando tus compras...</p>
+                <p class="text-slate-500 text-xs">Cargando tus compras desde DynamoDB...</p>
             </td>
         </tr>
     `;
@@ -268,7 +269,7 @@ async function cargarHistorialCompras() {
 }
 
 // =========================================================
-// SESIÓN Y AUTENTICACIÓN
+// SESIÓN Y AUTENTICACIÓN (CONEXIÓN API DYNAMODB)
 // =========================================================
 let currentAuthMode = 'login';
 
@@ -279,22 +280,42 @@ function showAuthModal(mode = 'login') {
     const subtitle = document.getElementById('authSubtitle');
     const submitBtn = document.getElementById('authSubmitBtn');
     const nombreContainer = document.getElementById('nombreFieldContainer');
+    const switchText = document.getElementById('authSwitchText');
+    const switchBtn = document.getElementById('authSwitchBtn');
 
     if (!modal) return;
 
     if (mode === 'register') {
-        if (title) title.textContent = "Crear Cuenta";
-        if (subtitle) subtitle.textContent = "Regístrate para comprar tus entradas fácilmente";
-        if (submitBtn) submitBtn.textContent = "Registrarse";
+        if (title) title.textContent = "Crea tu cuenta";
+        if (subtitle) subtitle.textContent = "Regístrate para guardar tus compras en la nube.";
+        if (submitBtn) {
+            submitBtn.textContent = "Registrarse";
+            submitBtn.className = "w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition shadow-md shadow-blue-100 text-sm mt-2";
+        }
         if (nombreContainer) nombreContainer.classList.remove('hidden');
+        if (switchText) switchText.textContent = "¿Ya tienes una cuenta?";
+        if (switchBtn) switchBtn.textContent = "Inicia sesión";
     } else {
-        if (title) title.textContent = "Iniciar Sesión";
-        if (subtitle) subtitle.textContent = "Ingresa tus credenciales para continuar";
-        if (submitBtn) submitBtn.textContent = "Ingresar";
+        if (title) title.textContent = "¡Bienvenido!";
+        if (subtitle) subtitle.textContent = "Por favor, ingresa a tu cuenta.";
+        if (submitBtn) {
+            submitBtn.textContent = "Ingresar";
+            submitBtn.className = "w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition shadow-md shadow-blue-100 text-sm mt-2";
+        }
         if (nombreContainer) nombreContainer.classList.add('hidden');
+        if (switchText) switchText.textContent = "¿No tienes cuenta?";
+        if (switchBtn) switchBtn.textContent = "Regístrate aquí";
     }
 
     modal.classList.remove('hidden');
+}
+
+function toggleAuthMode() {
+    if (currentAuthMode === 'login') {
+        showAuthModal('register');
+    } else {
+        showAuthModal('login');
+    }
 }
 
 function closeAuthModal() {
@@ -304,48 +325,74 @@ function closeAuthModal() {
     if (form) form.reset();
 }
 
-function handleAuthSubmit(event) {
+async function handleAuthSubmit(event) {
     if (event) event.preventDefault();
 
     const emailInput = document.getElementById('authEmail');
     const nombreInput = document.getElementById('authNombre');
+    const passwordInput = document.getElementById('authPassword');
 
     const email = emailInput ? emailInput.value.trim() : "";
-    const nombreVal = nombreInput ? nombreInput.value.trim() : "";
+    const nombre = nombreInput ? nombreInput.value.trim() : "";
+    const password = passwordInput ? passwordInput.value : "";
 
-    if (!email) {
-        showModal(false, "Campo requerido", "Por favor ingresa un correo electrónico.");
+    if (!email || !password) {
+        showModal(false, "Campos requeridos", "Por favor ingresa tu correo y contraseña.");
         return;
     }
 
-    let nombreFinal = "Usuario";
-
-    if (currentAuthMode === 'register' && nombreVal) {
-        nombreFinal = nombreVal;
-    } else if (email) {
-        const partes = email.split('@');
-        nombreFinal = partes[0].charAt(0).toUpperCase() + partes[0].slice(1);
+    const submitBtn = document.getElementById('authSubmitBtn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Procesando...";
     }
 
-    const usuarioObj = {
-        email: email,
-        nombre: nombreFinal,
-        loginAt: new Date().toISOString()
-    };
+    try {
+        const endpoint = currentAuthMode === 'register' 
+            ? `${API_USUARIOS_URL}/usuarios/registro`
+            : `${API_USUARIOS_URL}/usuarios/login`;
 
-    localStorage.setItem('usuarioTicketPass', JSON.stringify(usuarioObj));
+        const payload = currentAuthMode === 'register' 
+            ? { email, nombre: nombre || "Usuario", password }
+            : { email, password };
 
-    closeAuthModal();
-    actualizarNavbarUsuario();
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-    showModal(true, "¡Bienvenido!", `Hola, ${nombreFinal}. Has iniciado sesión correctamente.`);
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || "Ocurrió un problema en la autenticación.");
+        }
+
+        // Ficha de sesión en localStorage devuelta por DynamoDB
+        const usuarioSesion = data.usuario || { email: email, nombre: nombre || email.split('@')[0] };
+        localStorage.setItem('ticketpass_user', JSON.stringify(usuarioSesion));
+
+        closeAuthModal();
+        actualizarNavbarUsuario();
+
+        showModal(true, "¡Éxito!", data.mensaje || `Sesión iniciada como ${usuarioSesion.nombre}`);
+
+    } catch (error) {
+        console.error("Error en autenticación:", error);
+        showModal(false, "Error de Autenticación", error.message);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = currentAuthMode === 'register' ? "Registrarse" : "Ingresar";
+        }
+    }
 }
 
 function actualizarNavbarUsuario() {
     const navAuth = document.getElementById('navAuth');
     if (!navAuth) return;
 
-    const usuarioRaw = localStorage.getItem('usuarioTicketPass');
+    const usuarioRaw = localStorage.getItem('ticketpass_user');
 
     if (usuarioRaw) {
         const usuario = JSON.parse(usuarioRaw);
@@ -374,7 +421,7 @@ function actualizarNavbarUsuario() {
 }
 
 function cerrarSesion() {
-    localStorage.removeItem('usuarioTicketPass');
+    localStorage.removeItem('ticketpass_user');
     actualizarNavbarUsuario();
     if (window.location.pathname.includes("historial.html")) {
         window.location.href = "index.html";

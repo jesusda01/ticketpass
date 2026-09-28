@@ -34,6 +34,16 @@ functions:
           method: get
           cors: true
 
+  # --- FUNCIÓN DE REEMBOLSO AÑADIDA ---
+  procesarReembolso:
+    handler: handler.procesarReembolso
+    timeout: 15
+    events:
+      - http:
+          path: compras/reembolso
+          method: post
+          cors: true
+
 resources:
   Resources:
     ComprasTable:
@@ -54,7 +64,7 @@ resources:
         ResponseParameters:
           gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
           gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
-          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,OPTIONS'"
         ResponseType: DEFAULT_4XX
         RestApiId:
           Ref: 'ApiGatewayRestApi'
@@ -65,7 +75,7 @@ resources:
         ResponseParameters:
           gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
           gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
-          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,OPTIONS'"
         ResponseType: DEFAULT_5XX
         RestApiId:
           Ref: 'ApiGatewayRestApi'

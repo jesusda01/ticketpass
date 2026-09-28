@@ -26,11 +26,11 @@ TABLE_NAME = os.environ.get('COMPRAS_TABLE', 'ticketpass_compras_dev')
 SMTP_EMAIL = os.environ.get('SMTP_EMAIL')
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
 
-# Configuración Completa de CORS
+# Configuración Completa de CORS (Se incluye PUT para soporte de actualizaciones si se requiere)
 HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With,Accept",
-    "Access-Control-Allow-Methods": "OPTIONS,POST,GET"
+    "Access-Control-Allow-Methods": "OPTIONS,POST,GET,PUT"
 }
 
 def response(status_code, body):
@@ -41,13 +41,14 @@ def response(status_code, body):
     }
 
 def enviar_correo_gmail(datos):
-    destinatario = datos.get('usuario_email')
+    destinatario = datos.get('usuario_email') or datos.get('email')
     titulo_evento = datos.get('titulo_evento', 'Evento TicketPass')
     codigo_ticket = datos.get('codigo_ticket')
     zona = datos.get('zona', 'General')
     cantidad = datos.get('cantidad', 1)
-    precio_total = datos.get('precio_total', 0.0)
+    precio_total = float(datos.get('precio_total', 0.0))
     reembolsable = datos.get('reembolsable', False)
+    estado = datos.get('estado', 'Compra exitosa')
     
     # Extraer variables garantizando un valor visible si vienen vacías
     fecha_evento = datos.get('fecha_evento') or 'Por confirmar'
@@ -60,89 +61,131 @@ def enviar_correo_gmail(datos):
         print("ERROR CRÍTICO: Variables de entorno SMTP no configuradas.")
         return False
 
-    # Versión en texto plano para el filtro antispam de Gmail
-    text_body = f"""
-    ¡Compra Confirmada!
-    Gracias por tu compra en TicketPass.
+    # Validar si el correo corresponde a un reembolso
+    es_reembolso = (estado == 'Reembolsado' or estado == 'Reembolso solicitado')
+    
+    if es_reembolso:
+        monto_nominal = max(0.0, precio_total - 12.99)
+        asunto = f"Confirmación de Reembolso - Ticket {codigo_ticket}"
+        text_body = f"""
+        ¡Reembolso Procesado Exitosamente!
+        Tu ticket #{codigo_ticket} ha sido procesado para devolución.
 
-    Detalles de la Entrada #{codigo_ticket}
-    -------------------------------------------
-    Evento: {titulo_evento}
-    Lugar: {lugar_evento}
-    Fecha y Hora: {fecha_evento}
-    Zona: {zona}
-    Cantidad: {cantidad} ticket(s)
-    Total Pagado: S/ {float(precio_total):.2f}
+        Detalles de la Devolución:
+        - Evento: {titulo_evento}
+        - Total Pagado: S/ {precio_total:.2f}
+        - Monto Nominal a Devolver: S/ {monto_nominal:.2f} (Seguro de S/ 12.99 no reembolsable)
 
-    TicketPass Inc. - Todos los derechos reservados.
-    """
-
-    politica_html = """
-    <div style="background-color: #e6fffa; border-left: 4px solid #319795; padding: 12px; margin-top: 15px; border-radius: 4px;">
-        <strong style="color: #234e52;">Ticket Reembolsable</strong>
-        <p style="margin: 4px 0 0 0; color: #2c7a7b; font-size: 13px;">
-            Esta entrada aplica para reembolso completo si se solicita con al menos 48 horas de anticipación.
-        </p>
-    </div>
-    """ if reembolsable else """
-    <div style="background-color: #fff5f5; border-left: 4px solid #e53e3e; padding: 12px; margin-top: 15px; border-radius: 4px;">
-        <strong style="color: #742a2a;">Ticket No Reembolsable</strong>
-        <p style="margin: 4px 0 0 0; color: #9b2c2c; font-size: 13px;">
-            Esta entrada se adquirió en modalidad de tarifa final sin opción a cancelación ni reembolso.
-        </p>
-    </div>
-    """
-
-    html_body = f"""
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body style="font-family: Arial, sans-serif; background-color: #f7fafc; color: #2d3748; margin: 0; padding: 20px;">
-        <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 24px; border: 1px solid #e2e8f0;">
-            <div style="text-align: center; border-bottom: 2px solid #edf2f7; padding-bottom: 16px;">
-                <h1 style="color: #2563eb; margin: 0; font-size: 24px;">¡Compra Confirmada!</h1>
-                <p>Gracias por tu compra en TicketPass.</p>
+        TicketPass Inc. - Todos los derechos reservados.
+        """
+        
+        html_body = f"""
+        <!DOCTYPE html>
+        <html lang="es">
+        <head><meta charset="utf-8"></head>
+        <body style="font-family: Arial, sans-serif; background-color: #f7fafc; color: #2d3748; margin: 0; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 24px; border: 1px solid #e2e8f0;">
+                <div style="text-align: center; border-bottom: 2px solid #edf2f7; padding-bottom: 16px;">
+                    <h1 style="color: #dc2626; margin: 0; font-size: 24px;">¡Reembolso Procesado!</h1>
+                    <p>Tu solicitud de devolución ha sido registrada con éxito.</p>
+                </div>
+                <div style="margin-top: 20px;">
+                    <h3>Detalles del Ticket #{codigo_ticket}</h3>
+                    <p><strong>Evento:</strong> {titulo_evento}</p>
+                    <p><strong>Total Pagado:</strong> S/ {precio_total:.2f}</p>
+                    <p style="font-size: 16px; font-weight: bold; color: #2563eb; margin-top: 10px;">
+                        Monto Nominal a Devolver: S/ {monto_nominal:.2f}
+                    </p>
+                    <p style="font-size: 11px; color: #64748b;">(El costo de garantía de S/ 12.99 no es reembolsable)</p>
+                </div>
+                <div style="text-align: center; margin-top: 24px; font-size: 12px; color: #a0aec0;">
+                    <p>TicketPass Inc. - Todos los derechos reservados.</p>
+                </div>
             </div>
+        </body>
+        </html>
+        """
+    else:
+        asunto = f"Confirmación de Compra - TicketPass: {titulo_evento}"
+        text_body = f"""
+        ¡Compra Confirmada!
+        Gracias por tu compra en TicketPass.
 
-            <div style="margin-top: 20px;">
-                <h3>Detalles de la Entrada #{codigo_ticket}</h3>
-                <p><strong>Evento:</strong> {titulo_evento}</p>
-                <p><strong>Lugar:</strong> {lugar_evento}</p>
-                <p><strong>Fecha y Hora:</strong> {fecha_evento}</p>
-                <p><strong>Zona:</strong> {zona}</p>
-                <p><strong>Cantidad:</strong> {cantidad} ticket(s)</p>
-                <p style="font-size: 18px; font-weight: bold; color: #16a34a; text-align: right; margin-top: 15px;">
-                    Total Pagado: S/ {float(precio_total):.2f}
-                </p>
-            </div>
+        Detalles de la Entrada #{codigo_ticket}
+        -------------------------------------------
+        Evento: {titulo_evento}
+        Lugar: {lugar_evento}
+        Fecha y Hora: {fecha_evento}
+        Zona: {zona}
+        Cantidad: {cantidad} ticket(s)
+        Total Pagado: S/ {precio_total:.2f}
 
-            {politica_html}
+        TicketPass Inc. - Todos los derechos reservados.
+        """
 
-            <div style="text-align: center; margin-top: 24px; font-size: 12px; color: #a0aec0;">
-                <p>TicketPass Inc. - Todos los derechos reservados.</p>
-            </div>
+        politica_html = """
+        <div style="background-color: #e6fffa; border-left: 4px solid #319795; padding: 12px; margin-top: 15px; border-radius: 4px;">
+            <strong style="color: #234e52;">Ticket Reembolsable</strong>
+            <p style="margin: 4px 0 0 0; color: #2c7a7b; font-size: 13px;">
+                Esta entrada aplica para reembolso completo si se solicita con al menos 48 horas de anticipación.
+            </p>
         </div>
-    </body>
-    </html>
-    """
+        """ if reembolsable else """
+        <div style="background-color: #fff5f5; border-left: 4px solid #e53e3e; padding: 12px; margin-top: 15px; border-radius: 4px;">
+            <strong style="color: #742a2a;">Ticket No Reembolsable</strong>
+            <p style="margin: 4px 0 0 0; color: #9b2c2c; font-size: 13px;">
+                Esta entrada se adquirió en modalidad de tarifa final sin opción a cancelación ni reembolso.
+            </p>
+        </div>
+        """
+
+        html_body = f"""
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: Arial, sans-serif; background-color: #f7fafc; color: #2d3748; margin: 0; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 24px; border: 1px solid #e2e8f0;">
+                <div style="text-align: center; border-bottom: 2px solid #edf2f7; padding-bottom: 16px;">
+                    <h1 style="color: #2563eb; margin: 0; font-size: 24px;">¡Compra Confirmada!</h1>
+                    <p>Gracias por tu compra en TicketPass.</p>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <h3>Detalles de la Entrada #{codigo_ticket}</h3>
+                    <p><strong>Evento:</strong> {titulo_evento}</p>
+                    <p><strong>Lugar:</strong> {lugar_evento}</p>
+                    <p><strong>Fecha y Hora:</strong> {fecha_evento}</p>
+                    <p><strong>Zona:</strong> {zona}</p>
+                    <p><strong>Cantidad:</strong> {cantidad} ticket(s)</p>
+                    <p style="font-size: 18px; font-weight: bold; color: #16a34a; text-align: right; margin-top: 15px;">
+                        Total Pagado: S/ {precio_total:.2f}
+                    </p>
+                </div>
+
+                {politica_html}
+
+                <div style="text-align: center; margin-top: 24px; font-size: 12px; color: #a0aec0;">
+                    <p>TicketPass Inc. - Todos los derechos reservados.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
 
     # Construcción de la estructura MIME Multipart
     msg = MIMEMultipart('alternative')
-    msg['Subject'] = f"Confirmación de Compra - TicketPass: {titulo_evento}"
+    msg['Subject'] = asunto
     msg['From'] = f"TicketPass <{smtp_email}>"
     msg['To'] = destinatario
     msg['Reply-To'] = smtp_email
     msg['Date'] = formatdate(localtime=True)
     msg['Message-ID'] = make_msgid(domain="gmail.com")
 
-    # Adjuntar primero texto plano y luego HTML
-    part1 = MIMEText(text_body, 'plain', 'utf-8')
-    part2 = MIMEText(html_body, 'html', 'utf-8')
-    msg.attach(part1)
-    msg.attach(part2)
+    msg.attach(MIMEText(text_body, 'plain', 'utf-8'))
+    msg.attach(MIMEText(html_body, 'html', 'utf-8'))
 
     try:
         with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10) as server:
@@ -170,7 +213,6 @@ def procesarCompra(event, context):
         reembolsable = bool(body.get('reembolsable', False))
         titulo_evento = body.get('titulo_evento', 'Evento TicketPass')
 
-        # Extracción flexible de Fecha, Hora y Lugar
         fecha_evento = body.get('fecha_evento') or body.get('fecha') or 'Por confirmar'
         hora_evento = body.get('hora_evento') or body.get('hora') or 'Por confirmar'
         lugar_evento = body.get('lugar_evento') or body.get('lugar') or body.get('ubicacion') or 'Por confirmar'
@@ -183,7 +225,6 @@ def procesarCompra(event, context):
         codigo_ticket = f"TK-{int(now.timestamp() * 1000)}"
         fecha_compra = now.isoformat()
 
-        # Guardar la información en DynamoDB incluyendo fecha, hora y lugar
         item = {
             'codigo_ticket': codigo_ticket,
             'evento_id': str(evento_id),
@@ -194,6 +235,7 @@ def procesarCompra(event, context):
             'cantidad': int(cantidad),
             'precio_total': str(precio_total),
             'reembolsable': reembolsable,
+            'estado': 'Compra exitosa',
             'fecha_compra': fecha_compra,
             'fecha_evento': fecha_evento,
             'hora_evento': hora_evento,
@@ -203,21 +245,9 @@ def procesarCompra(event, context):
         table = dynamodb.Table(TABLE_NAME)
         table.put_item(Item=item)
 
-        # Envío de correo
         correo_enviado = False
         try:
-            correo_enviado = enviar_correo_gmail({
-                "usuario_email": email_clean,
-                "codigo_ticket": codigo_ticket,
-                "titulo_evento": titulo_evento,
-                "zona": zona,
-                "cantidad": cantidad,
-                "precio_total": precio_total,
-                "reembolsable": reembolsable,
-                "fecha_evento": fecha_evento,
-                "hora_evento": hora_evento,
-                "lugar_evento": lugar_evento
-            })
+            correo_enviado = enviar_correo_gmail(item)
         except Exception as err_mail:
             print(f"Error secundario en envio de correo: {str(err_mail)}")
 
@@ -243,10 +273,8 @@ def obtenerComprasPorUsuario(event, context):
             return response(400, {"error": "El parámetro 'email' es requerido"})
 
         email_clean = str(email_buscado).strip().lower()
-
         table = dynamodb.Table(TABLE_NAME)
 
-        # Escanear DynamoDB trayendo todos los elementos para filtrar flexiblemente
         res = table.scan()
         todos_los_items = res.get('Items', [])
 
@@ -254,7 +282,6 @@ def obtenerComprasPorUsuario(event, context):
             res = table.scan(ExclusiveStartKey=res['LastEvaluatedKey'])
             todos_los_items.extend(res.get('Items', []))
 
-        # Filtrado en Python flexible e insensible a mayúsculas/minúsculas
         compras_usuario = []
         for item in todos_los_items:
             u_email = item.get('usuario_email') or item.get('email') or (item.get('comprador', {}).get('email') if isinstance(item.get('comprador'), dict) else None)
@@ -267,3 +294,48 @@ def obtenerComprasPorUsuario(event, context):
     except Exception as e:
         print(f"Error interno en obtenerComprasPorUsuario: {str(e)}")
         return response(500, {"error": f"Error al obtener compras: {str(e)}"})
+
+def procesarReembolso(event, context):
+    if event.get('httpMethod') == 'OPTIONS':
+        return response(200, {})
+
+    try:
+        body = (
+            json.loads(event.get('body', '{}'))
+            if isinstance(event.get('body'), str)
+            else (event.get('body') or {})
+        )
+        codigo_ticket = body.get('codigo_ticket')
+
+        if not codigo_ticket:
+            return response(400, {'error': 'El código del ticket es obligatorio'})
+
+        table = dynamodb.Table(TABLE_NAME)
+
+        # 1. Actualizar el estado del ticket en DynamoDB a "Reembolsado"
+        res = table.update_item(
+            Key={'codigo_ticket': codigo_ticket},
+            UpdateExpression='SET #st = :nuevo_estado',
+            ExpressionAttributeNames={'#st': 'estado'},
+            ExpressionAttributeValues={':nuevo_estado': 'Reembolsado'},
+            ReturnValues='ALL_NEW',
+        )
+
+        item_actualizado = res.get('Attributes', {})
+
+        # 2. Enviar correo SMTP de confirmación de reembolso detallando los montos
+        try:
+            enviar_correo_gmail(item_actualizado)
+        except Exception as mail_err:
+            print(f'Error enviando correo SMTP de reembolso: {str(mail_err)}')
+
+        return response(
+            200, {
+                'mensaje': 'Reembolso procesado y guardado con éxito',
+                'compra': item_actualizado,
+            }
+        )
+
+    except Exception as e:
+        print(f'Error en procesarReembolso: {str(e)}')
+        return response(500, {'error': f'Error interno: {str(e)}'})

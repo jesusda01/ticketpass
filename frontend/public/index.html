@@ -41,11 +41,26 @@
             <p class="text-slate-300 text-base sm:text-lg max-w-2xl mx-auto mb-8">
                 Conciertos, festivales, deportes y obras de teatro. Compra tus entradas al instante y de forma segura.
             </p>
-            <div class="max-w-xl mx-auto relative">
-                <input type="text" id="searchInput" oninput="filtrarEventos()" placeholder="Buscar evento por nombre, artista o lugar..." class="w-full py-3.5 pl-11 pr-4 bg-white/10 backdrop-blur-md text-white placeholder-slate-400 border border-white/20 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm sm:text-base">
-                <svg class="w-5 h-5 absolute left-4 top-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
+            
+            <!-- BARRA DE BÚSQUEDA Y FILTRADO ESTILO JOINNUS -->
+            <div class="max-w-3xl mx-auto bg-white/10 backdrop-blur-md border border-white/20 p-2 sm:p-3 rounded-2xl shadow-xl flex flex-col sm:flex-row items-center gap-3">
+                <div class="relative flex-grow w-full">
+                    <input type="text" id="searchInput" oninput="filtrarEventos()" placeholder="Buscar evento por nombre, artista o lugar..." class="w-full py-3 pl-11 pr-4 bg-white/10 text-white placeholder-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm">
+                    <svg class="w-5 h-5 absolute left-3.5 top-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+
+                <!-- SELECTOR DE CATEGORÍAS EN INDEX.HTML -->
+                <div class="w-full sm:w-56 flex-shrink-0">
+                    <select id="categorySelect" onchange="filtrarEventos()" class="w-full py-3 px-3 bg-white/20 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm cursor-pointer [&>option]:text-slate-800">
+                        <option value="">Todas las Categorías</option>
+                        <option value="Conciertos">Música / Conciertos</option>
+                        <option value="Deporte">Deportes</option>
+                        <option value="Arte & Cultura">Arte, Cultura y Teatro</option>
+                        <option value="Cine">Cine</option>
+                    </select>
+                </div>
             </div>
         </div>
     </section>
@@ -72,14 +87,24 @@
     <!-- MODAL AUTH -->
     <div id="authModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+            <!-- Botón cerrar (X) -->
             <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold p-1">&times;</button>
-            <h3 id="authTitle" class="text-2xl font-bold text-slate-900 mb-2">Iniciar Sesión</h3>
-            <p id="authSubtitle" class="text-sm text-slate-500 mb-6">Ingresa tus credenciales para continuar</p>
+            
+            <!-- Conmutador superior estilo Joinnus -->
+            <div class="flex items-center justify-end mb-6 text-xs gap-2">
+                <span id="authSwitchText" class="text-slate-500">¿No tienes cuenta?</span> 
+                <button type="button" onclick="toggleAuthMode()" class="border border-slate-300 rounded-full px-3 py-1 font-semibold text-slate-700 hover:bg-slate-50 transition" id="authSwitchBtn">
+                    Regístrate aquí
+                </button>
+            </div>
+
+            <h3 id="authTitle" class="text-2xl font-bold text-slate-900 mb-1">¡Bienvenido!</h3>
+            <p id="authSubtitle" class="text-sm text-slate-500 mb-6">Por favor, ingresa a tu cuenta.</p>
 
             <form id="formAuth" onsubmit="handleAuthSubmit(event)" class="space-y-4">
                 <div id="nombreFieldContainer" class="hidden">
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre Completo</label>
-                    <input type="text" id="authNombre" placeholder="Juan Pérez" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <input type="text" id="authNombre" placeholder="Tu nombre" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Correo Electrónico</label>
@@ -89,7 +114,7 @@
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Contraseña</label>
                     <input type="password" id="authPassword" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                 </div>
-                <button type="submit" id="authSubmitBtn" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition shadow-md shadow-blue-100 text-sm">
+                <button type="submit" id="authSubmitBtn" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition shadow-md shadow-blue-100 text-sm mt-2">
                     Ingresar
                 </button>
             </form>
@@ -108,9 +133,10 @@
         </div>
     </div>
 
-    <!-- SCRIPT CORREGIDO -->
+    <!-- SCRIPTS -->
     <script>
         const API_URL = "https://k9ai3zejv8.execute-api.us-east-1.amazonaws.com/dev";
+        const API_USUARIOS_URL = "https://xihlkly0kg.execute-api.us-east-1.amazonaws.com/dev";
         let todosLosEventos = [];
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -233,22 +259,32 @@
 
         function filtrarEventos() {
             const input = document.getElementById('searchInput');
-            if (!input) return;
-            const query = input.value.toLowerCase().trim();
-            if (!query) {
-                renderEventos(todosLosEventos);
-                return;
-            }
+            const categorySelect = document.getElementById('categorySelect');
+
+            const query = input ? input.value.toLowerCase().trim() : '';
+            const catFiltro = categorySelect ? categorySelect.value.trim() : '';
+
             const filtrados = todosLosEventos.filter(e => {
                 const titulo = (e.titulo || e.nombre || '').toLowerCase();
                 const lugar = (e.lugar || e.ubicacion || '').toLowerCase();
-                const categoria = (e.categoria || '').toLowerCase();
-                return titulo.includes(query) || lugar.includes(query) || categoria.includes(query);
+                const catEvento = (e.categoria || '').trim();
+
+                const desc = (e.descripcion || '').toLowerCase();
+                const coincideTexto = !query || 
+                    titulo.includes(query) || 
+                    lugar.includes(query) || 
+                    desc.includes(query);
+
+                const coincideCategoria = !catFiltro || catEvento === catFiltro;
+
+                return coincideTexto && coincideCategoria;
             });
+
             renderEventos(filtrados);
         }
 
         let currentAuthMode = 'login';
+
         function showAuthModal(mode = 'login') {
             currentAuthMode = mode;
             const modal = document.getElementById('authModal');
@@ -256,19 +292,38 @@
             const subtitle = document.getElementById('authSubtitle');
             const submitBtn = document.getElementById('authSubmitBtn');
             const nombreContainer = document.getElementById('nombreFieldContainer');
+            
+            const switchText = document.getElementById('authSwitchText');
+            const switchBtn = document.getElementById('authSwitchBtn');
+
+            if (!modal) return;
 
             if (mode === 'register') {
                 title.textContent = "Crear Cuenta";
                 subtitle.textContent = "Regístrate para comprar tus entradas fácilmente";
                 submitBtn.textContent = "Registrarse";
                 nombreContainer.classList.remove('hidden');
+
+                if (switchText) switchText.textContent = "¿Ya tienes una cuenta?";
+                if (switchBtn) switchBtn.textContent = "Inicia sesión aquí";
             } else {
                 title.textContent = "Iniciar Sesión";
                 subtitle.textContent = "Ingresa tus credenciales para continuar";
                 submitBtn.textContent = "Ingresar";
                 nombreContainer.classList.add('hidden');
+
+                if (switchText) switchText.textContent = "¿No tienes cuenta?";
+                if (switchBtn) switchBtn.textContent = "Regístrate aquí";
             }
             modal.classList.remove('hidden');
+        }
+
+        function toggleAuthMode() {
+            if (currentAuthMode === 'login') {
+                showAuthModal('register');
+            } else {
+                showAuthModal('login');
+            }
         }
 
         function closeAuthModal() {
@@ -278,11 +333,12 @@
             if (form) form.reset();
         }
 
-        function handleAuthSubmit(event) {
+        async function handleAuthSubmit(event) {
             event.preventDefault();
             const emailInput = document.getElementById('authEmail');
             const nombreInput = document.getElementById('authNombre');
             const passwordInput = document.getElementById('authPassword');
+            const submitBtn = document.getElementById('authSubmitBtn');
 
             const email = emailInput ? emailInput.value.trim().toLowerCase() : "";
             const password = passwordInput ? passwordInput.value.trim() : "";
@@ -293,59 +349,50 @@
                 return;
             }
 
-            // Obtener lista de usuarios registrados previamente
-            const usuariosRegistrados = JSON.parse(localStorage.getItem('usuariosTicketPass_db')) || [];
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></span> Procesando...`;
 
-            if (currentAuthMode === 'register') {
-                // Verificar si ya existe la cuenta
-                const existe = usuariosRegistrados.some(u => u.email === email);
-                if (existe) {
-                    showModal(false, "Error de Registro", "El correo ingresado ya se encuentra registrado.");
-                    return;
+            try {
+                const endpoint = currentAuthMode === 'register' 
+                    ? `${API_USUARIOS_URL}/usuarios/registro`
+                    : `${API_USUARIOS_URL}/usuarios/login`;
+
+                const payload = currentAuthMode === 'register'
+                    ? { email, password, nombre: nombreVal || "Usuario" }
+                    : { email, password };
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "No se pudo completar la autenticación.");
                 }
 
-                let nombreFinal = nombreVal;
-                if (!nombreFinal) {
-                    const partes = email.split('@');
-                    nombreFinal = partes[0].charAt(0).toUpperCase() + partes[0].slice(1);
-                }
+                const usuarioSesion = data.usuario || { email: email, nombre: nombreVal || email.split('@')[0] };
+                localStorage.setItem('ticketpass_user', JSON.stringify(usuarioSesion));
 
-                const nuevoUsuario = { email: email, password: password, nombre: nombreFinal };
-                usuariosRegistrados.push(nuevoUsuario);
-                localStorage.setItem('usuariosTicketPass_db', JSON.stringify(usuariosRegistrados));
-
-                // Iniciar sesión automáticamente tras el registro
-                localStorage.setItem('usuarioTicketPass', JSON.stringify({ email: email, nombre: nombreFinal }));
                 closeAuthModal();
                 actualizarNavbarUsuario();
-                showModal(true, "¡Registro Exitoso!", `Bienvenido, ${nombreFinal}. Tu cuenta ha sido creada correctamente.`);
+                showModal(true, "¡Éxito!", data.mensaje || `Hola, ${usuarioSesion.nombre}. Sesión iniciada correctamente.`);
 
-            } else {
-                // MODO LOGIN: Validar que el usuario exista
-                const usuarioEncontrado = usuariosRegistrados.find(u => u.email === email);
-
-                if (!usuarioEncontrado) {
-                    showModal(false, "Error de Acceso", "La cuenta ingresada no existe. Por favor regístrate antes de iniciar sesión.");
-                    return;
-                }
-
-                if (usuarioEncontrado.password !== password) {
-                    showModal(false, "Error de Acceso", "Contraseña incorrecta. Por favor verifica tus credenciales.");
-                    return;
-                }
-
-                // Si email y password coinciden:
-                localStorage.setItem('usuarioTicketPass', JSON.stringify({ email: usuarioEncontrado.email, nombre: usuarioEncontrado.nombre }));
-                closeAuthModal();
-                actualizarNavbarUsuario();
-                showModal(true, "¡Bienvenido!", `Hola, ${usuarioEncontrado.nombre}. Has iniciado sesión correctamente.`);
+            } catch (error) {
+                console.error("Error en autenticación:", error);
+                showModal(false, "Error de Acceso", error.message || "No se pudo conectar con la API de usuarios.");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = currentAuthMode === 'register' ? "Registrarse" : "Ingresar";
             }
         }
 
         function actualizarNavbarUsuario() {
             const navAuth = document.getElementById('navAuth');
             if (!navAuth) return;
-            const usuarioRaw = localStorage.getItem('usuarioTicketPass');
+            const usuarioRaw = localStorage.getItem('ticketpass_user');
 
             if (usuarioRaw) {
                 const usuario = JSON.parse(usuarioRaw);
@@ -376,7 +423,7 @@
         }
 
         function cerrarSesion() {
-            localStorage.removeItem('usuarioTicketPass');
+            localStorage.removeItem('ticketpass_user');
             actualizarNavbarUsuario();
             showModal(true, "Sesión Cerrada", "Has cerrado sesión correctamente.");
         }

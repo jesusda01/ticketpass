@@ -1,12 +1,14 @@
-# Entornos y temporales de Serverless
+# Dependencias e instalación
+node_modules/
+
+# Serveless Framework (builds y artifacts temporales)
 .serverless/
 *.zip
 
-# Dependencias
-node_modules/
+# Cache de Python
 __pycache__/
 *.pyc
 
-# Archivos de entorno y bases de datos locales
+# Archivos de entorno y credenciales
 .env
 *.db

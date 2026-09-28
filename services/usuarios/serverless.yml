@@ -1,0 +1,53 @@
+service: ticketpass-usuarios
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: ${opt:stage, 'dev'}
+  region: us-east-1
+  iam:
+    role: arn:aws:iam::503186507833:role/LabRole
+  environment:
+    USUARIOS_TABLE: ticketpass_usuarios_${self:provider.stage}
+
+functions:
+  registrarUsuario:
+    handler: handler.registrarUsuario
+    timeout: 15
+    events:
+      - http:
+          path: usuarios/registro
+          method: post
+          cors: true
+
+  loginUsuario:
+    handler: handler.loginUsuario
+    timeout: 15
+    events:
+      - http:
+          path: usuarios/login
+          method: post
+          cors: true
+
+  obtenerPerfil:
+    handler: handler.obtenerPerfil
+    timeout: 15
+    events:
+      - http:
+          path: usuarios/perfil
+          method: get
+          cors: true
+
+resources:
+  Resources:
+    UsuariosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ticketpass_usuarios_${self:provider.stage}
+        AttributeDefinitions:
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST

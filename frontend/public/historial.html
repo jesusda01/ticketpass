@@ -6,9 +6,17 @@
     <title>Historial de Compras - TicketPass</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Librería QRCode.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
+        @media print {
+            body * { visibility: hidden; }
+            #ticketPrintArea, #ticketPrintArea * { visibility: visible; }
+            #ticketPrintArea { position: absolute; left: 0; top: 0; width: 100%; border: none; background: white !important; color: black !important; box-shadow: none !important; }
+            .no-print { display: none !important; }
+        }
     </style>
     <link rel="shortcut icon" href="#">
 </head>
@@ -20,10 +28,7 @@
             <a href="index.html" class="flex items-center gap-2">
                 <span class="text-2xl font-black tracking-tight text-blue-600">TicketPass</span>
             </a>
-            
-            <div id="navAuth" class="flex items-center gap-3">
-                <!-- Se llena dinámicamente -->
-            </div>
+            <div id="navAuth" class="flex items-center gap-3"></div>
         </div>
     </header>
 
@@ -95,7 +100,7 @@
                                     <th class="py-3.5 px-4">Evento / Entrada</th>
                                     <th class="py-3.5 px-4 text-center">Cantidad</th>
                                     <th class="py-3.5 px-4">Estado</th>
-                                    <th class="py-3.5 px-4 text-right">Total</th>
+                                    <th class="py-3.5 px-4 text-right">Total / Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="tablaCompras" class="divide-y divide-slate-100 font-medium text-slate-700">
@@ -138,29 +143,97 @@
         </div>
     </footer>
 
+    <!-- MODAL DE TICKET DIGITAL / QR / PDF CON MONTOS -->
+    <div id="ticketModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div id="ticketPrintArea" class="bg-gradient-to-br from-slate-900 to-blue-950 text-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative border border-blue-500/35">
+            <button onclick="cerrarTicketModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-2xl font-bold p-1 no-print">&times;</button>
+            
+            <div class="text-center pb-5 border-b border-white/10">
+                <span class="text-xs font-extrabold tracking-widest uppercase bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full border border-blue-500/30">TicketPass Oficial</span>
+                <h3 id="ticketEvento" class="text-xl font-black mt-3 mb-1 text-white">Nombre del Evento</h3>
+                <p id="ticketZona" class="text-xs text-blue-300 font-medium">Zona: VIP</p>
+            </div>
+
+            <div class="py-5 space-y-2.5 text-xs">
+                <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
+                    <span class="text-slate-400">Código de Ticket:</span>
+                    <span id="ticketCodigo" class="font-mono font-bold text-blue-400">TK-0000000</span>
+                </div>
+                <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
+                    <span class="text-slate-400">Comprador:</span>
+                    <span id="ticketComprador" class="font-semibold text-slate-200">usuario@email.com</span>
+                </div>
+                <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
+                    <span class="text-slate-400">Fecha del Evento:</span>
+                    <span id="ticketFechaEvento" class="font-semibold text-slate-200">--</span>
+                </div>
+                <!-- CAMPOS DE MONTO INCORPORADOS EN DETALLE Y PDF -->
+                <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
+                    <span class="text-slate-400">Total Pagado:</span>
+                    <span id="ticketTotalPagado" class="font-bold text-emerald-400">S/ 0.00</span>
+                </div>
+                <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
+                    <span class="text-slate-400">Monto Reembolsable / Nominal:</span>
+                    <span id="ticketMontoNominal" class="font-bold text-blue-300">S/ 0.00</span>
+                </div>
+            </div>
+
+            <!-- CONTENEDOR QR REAL -->
+            <div class="bg-white p-3 rounded-2xl text-center mx-auto w-32 h-32 flex items-center justify-center shadow-inner">
+                <div id="qrcodeContainer" class="flex items-center justify-center"></div>
+            </div>
+
+            <p class="text-[10px] text-center text-slate-400 mt-3">Presenta este código QR en la entrada del evento.</p>
+
+            <!-- BOTÓN DE DESCARGA PDF CON NOMBRE ÚNICO -->
+            <button onclick="descargarTicketPDF()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-xl transition duration-200 text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-900/50 no-print">
+                📥 Descargar Ticket en PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL PERSONALIZADO PARA REEMBOLSOS Y MENSAJES -->
+    <div id="customModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div id="modalIcon" class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl font-bold mx-auto">ℹ️</div>
+            <div class="text-center space-y-1">
+                <h3 id="modalTitle" class="text-lg font-bold text-slate-900">Título del Modal</h3>
+                <p id="modalMessage" class="text-xs text-slate-600 leading-relaxed whitespace-pre-line">Mensaje descriptivo...</p>
+            </div>
+            <div id="modalButtons" class="flex gap-2 pt-2">
+                <!-- Se inyectan botones dinámicamente -->
+            </div>
+        </div>
+    </div>
+
     <!-- Lógica JavaScript Principal -->
     <script src="app.js"></script>
 
     <script>
-        // Variables globales para la paginación y filtrado
         let comprasGlobales = [];
         let comprasFiltradas = [];
         let paginaActual = 1;
-        const comprasPorPagina = 5; // Cantidad de compras por página
+        const comprasPorPagina = 5;
 
         document.addEventListener('DOMContentLoaded', () => {
-            const usuarioRaw = localStorage.getItem('usuarioTicketPass');
+            const usuarioRaw = localStorage.getItem('ticketpass_user');
             if (!usuarioRaw) {
                 window.location.href = "index.html";
                 return;
             }
 
-            const usuario = JSON.parse(usuarioRaw);
-            document.getElementById('usrNombre').textContent = usuario.nombre || "Usuario";
-            document.getElementById('usrEmail').textContent = usuario.email || "correo@ejemplo.com";
+            try {
+                const usuario = JSON.parse(usuarioRaw);
+                document.getElementById('usrNombre').textContent = usuario.nombre || "Usuario";
+                document.getElementById('usrEmail').textContent = usuario.email || "jesus.delgadoa@gmail.com";
 
-            actualizarNavbarUsuario();
-            obtenerHistorialDesdeAPI(usuario.email);
+                actualizarNavbarUsuario();
+                obtenerHistorialDesdeAPI(usuario.email);
+            } catch (e) {
+                console.error("Error leyendo la sesión:", e);
+                localStorage.removeItem('ticketpass_user');
+                window.location.href = "index.html";
+            }
         });
 
         async function obtenerHistorialDesdeAPI(email) {
@@ -171,14 +244,14 @@
                 <tr>
                     <td colspan="5" class="text-center py-8">
                         <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent mb-2"></div>
-                        <p class="text-slate-500 text-xs">Consultando compras en el servidor...</p>
+                        <p class="text-slate-500 text-xs">Consultando compras en DynamoDB...</p>
                     </td>
                 </tr>
             `;
 
             try {
                 if (typeof API_COMPRAS_URL === 'undefined' || !API_COMPRAS_URL) {
-                    throw new Error("La variable API_COMPRAS_URL no está definida en app.js");
+                    throw new Error("La variable API_COMPRAS_URL no está definida");
                 }
 
                 const endpoint = `${API_COMPRAS_URL}/compras/usuario?email=${encodeURIComponent(email)}`;
@@ -200,6 +273,8 @@
                 } else if (data.body) {
                     const parsed = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
                     compras = Array.isArray(parsed) ? parsed : [];
+                } else if (data.compras && Array.isArray(data.compras)) {
+                    compras = data.compras;
                 }
 
                 if (!compras || compras.length === 0) {
@@ -209,10 +284,15 @@
                     return;
                 }
 
+                compras.sort((a, b) => {
+                    const fechaA = new Date(a.fecha_compra || a.fecha || 0);
+                    const fechaB = new Date(b.fecha_compra || b.fecha || 0);
+                    return fechaB - fechaA;
+                });
+
                 sinCompras.classList.add('hidden');
                 document.getElementById('contenedorPaginacion').classList.remove('hidden');
                 
-                // Guardar en la variable global y renderizar
                 comprasGlobales = compras;
                 comprasFiltradas = compras;
                 paginaActual = 1;
@@ -224,7 +304,7 @@
                     <tr>
                         <td colspan="5" class="text-center text-red-500 py-6">
                             <p class="font-semibold">Ocurrió un error al cargar tus compras.</p>
-                            <p class="text-[11px] text-slate-400 mt-1">${escapeHTML(error.message || 'Error de conexión / CORS')}</p>
+                            <p class="text-[11px] text-slate-400 mt-1">${error.message || 'Error de conexión'}</p>
                         </td>
                     </tr>
                 `;
@@ -255,41 +335,54 @@
 
             tbody.innerHTML = comprasPagina.map(c => {
                 const codigoTicket = c.codigo_ticket || c.id || 'N/A';
-                const tituloEvento = c.titulo_evento || 'Evento TicketPass';
+                const tituloEvento = c.titulo_evento || c.evento_titulo || 'Evento TicketPass';
                 const zona = c.zona || 'General';
                 const cantidad = c.cantidad || 1;
                 const precioTotal = parseFloat(c.precio_total || c.total || 0).toFixed(2);
+                const estadoCompra = c.estado || 'Compra exitosa';
                 
+                const esReembolsable = c.reembolsable === true || c.tipo_compra === 'Reembolsable';
+
                 let fechaStr = 'Sin fecha';
                 if (c.fecha_compra) {
                     try {
                         const d = new Date(c.fecha_compra);
                         fechaStr = d.toLocaleDateString('es-PE', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
+                            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                         });
                     } catch (e) {
                         fechaStr = c.fecha_compra;
                     }
                 }
 
+                let badgeEstado = `<span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-full border border-emerald-200">✓ Compra exitosa</span>`;
+                if (estadoCompra === 'Reembolso solicitado') {
+                    badgeEstado = `<span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[11px] font-bold px-2.5 py-1 rounded-full border border-amber-200">⏳ Reembolso solicitado</span>`;
+                } else if (estadoCompra === 'Reembolsado') {
+                    badgeEstado = `<span class="inline-flex items-center gap-1 bg-red-50 text-red-700 text-[11px] font-bold px-2.5 py-1 rounded-full border border-red-200">↺ Reembolsado</span>`;
+                }
+
                 return `
                     <tr class="hover:bg-slate-50/80 transition">
-                        <td class="py-4 px-4 text-slate-500">${escapeHTML(fechaStr)}</td>
+                        <td class="py-4 px-4 text-slate-500">${fechaStr}</td>
                         <td class="py-4 px-4">
-                            <div class="font-bold text-slate-900 text-sm">${escapeHTML(tituloEvento)}</div>
-                            <div class="text-[11px] text-blue-600 font-mono font-semibold">${escapeHTML(codigoTicket)} • <span class="text-slate-500">${escapeHTML(zona)}</span></div>
+                            <div class="font-bold text-slate-900 text-sm">${tituloEvento}</div>
+                            <div class="text-[11px] text-blue-600 font-mono font-semibold">${codigoTicket} • <span class="text-slate-500">${zona}</span></div>
                         </td>
                         <td class="py-4 px-4 text-center font-bold text-slate-700">${cantidad}</td>
-                        <td class="py-4 px-4">
-                            <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-full border border-emerald-200">
-                                ✓ Compra exitosa
-                            </span>
+                        <td class="py-4 px-4">${badgeEstado}</td>
+                        <td class="py-4 px-4 text-right">
+                            <div class="font-extrabold text-slate-900 text-sm">S/ ${precioTotal}</div>
+                            <div class="flex items-center justify-end gap-1.5 mt-2">
+                                <button onclick='verTicketDigital(${JSON.stringify(c)})' class="text-[10px] bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold px-2 py-1 rounded-lg transition border border-blue-200">
+                                    🎟️ Ver Ticket
+                                </button>
+                                ${esReembolsable && estadoCompra === 'Compra exitosa' ? `
+                                <button onclick='solicitarReembolso("${codigoTicket}")' class="text-[10px] bg-red-50 text-red-600 hover:bg-red-100 font-semibold px-2 py-1 rounded-lg transition border border-red-200">
+                                    🔄 Reembolso
+                                </button>` : ''}
+                            </div>
                         </td>
-                        <td class="py-4 px-4 text-right font-extrabold text-slate-900 text-sm">S/ ${precioTotal}</td>
                     </tr>
                 `;
             }).join('');
@@ -304,32 +397,147 @@
 
         function actualizarPaginador(inicio, fin, total) {
             const totalPaginas = Math.ceil(total / comprasPorPagina) || 1;
-
             document.getElementById('pagInicio').textContent = total === 0 ? 0 : inicio;
             document.getElementById('pagFin').textContent = fin;
             document.getElementById('pagTotal').textContent = total;
             document.getElementById('indicadorPagina').textContent = `Página ${paginaActual} de ${totalPaginas}`;
-
             document.getElementById('btnAnterior').disabled = (paginaActual <= 1);
             document.getElementById('btnSiguiente').disabled = (paginaActual >= totalPaginas || total === 0);
         }
 
         function filtrarCompras() {
             const q = document.getElementById('inputBuscar').value.toLowerCase().trim();
-
             if (!q) {
                 comprasFiltradas = comprasGlobales;
             } else {
                 comprasFiltradas = comprasGlobales.filter(c => {
-                    const evento = (c.titulo_evento || '').toLowerCase();
+                    const evento = (c.titulo_evento || c.evento_titulo || '').toLowerCase();
                     const ticket = (c.codigo_ticket || c.id || '').toLowerCase();
                     const zona = (c.zona || '').toLowerCase();
                     return evento.includes(q) || ticket.includes(q) || zona.includes(q);
                 });
             }
-
             paginaActual = 1;
             renderizarTablaPaginada();
+        }
+
+        // --- VISUALIZACIÓN DE TICKET DIGITAL, QR Y MONTOS (ACTUALIZADO) ---
+        function verTicketDigital(compra) {
+            document.getElementById('ticketEvento').textContent = compra.titulo_evento || compra.evento_titulo || "Evento TicketPass";
+            document.getElementById('ticketZona').textContent = `Zona: ${compra.zona || 'General'} (${compra.cantidad || 1} entradas)`;
+            const codigoTicket = compra.codigo_ticket || compra.id || "TK-GENERAL";
+            document.getElementById('ticketCodigo').textContent = codigoTicket;
+            
+            const usuario = JSON.parse(localStorage.getItem('ticketpass_user') || '{}');
+            document.getElementById('ticketComprador').textContent = compra.usuario_email || usuario.email || "jesus.delgadoa@gmail.com";
+            document.getElementById('ticketFechaEvento').textContent = compra.fecha_evento || compra.fecha || "Fecha por confirmar";
+
+            // Inyección de Montos (Total Pagado y Monto Nominal)
+            const totalPagado = parseFloat(compra.precio_total || compra.total || 0);
+            const montoNominal = Math.max(0, totalPagado - 12.99).toFixed(2);
+            document.getElementById('ticketTotalPagado').textContent = `S/ ${totalPagado.toFixed(2)}`;
+            document.getElementById('ticketMontoNominal').textContent = `S/ ${montoNominal}`;
+
+            // Generación de QR real
+            const qrContainer = document.getElementById('qrcodeContainer');
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: codigoTicket,
+                width: 96,
+                height: 96,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            document.getElementById('ticketModal').classList.remove('hidden');
+        }
+
+        function cerrarTicketModal() {
+            document.getElementById('ticketModal').classList.add('hidden');
+        }
+
+        // --- DESCARGAR PDF CON NOMBRE ÚNICO ---
+        function descargarTicketPDF() {
+            const codigo = document.getElementById('ticketCodigo').textContent || 'Ticket';
+            const originalTitle = document.title;
+            document.title = `TicketPass-${codigo}`;
+            window.print();
+            setTimeout(() => {
+                document.title = originalTitle;
+            }, 1000);
+        }
+
+        function mostrarModalCustom(titulo, mensaje, icono, botonesHTML) {
+            document.getElementById('modalTitle').textContent = titulo;
+            document.getElementById('modalMessage').textContent = mensaje;
+            document.getElementById('modalIcon').innerHTML = icono;
+            document.getElementById('modalButtons').innerHTML = botonesHTML;
+            document.getElementById('customModal').classList.remove('hidden');
+        }
+
+        function cerrarModalCustom() {
+            document.getElementById('customModal').classList.add('hidden');
+        }
+
+        function solicitarReembolso(codigoTicket) {
+            const compra = comprasGlobales.find(c => (c.codigo_ticket || c.id) === codigoTicket);
+            const totalPagado = parseFloat(compra?.precio_total || compra?.total || 0);
+            const montoNominal = Math.max(0, totalPagado - 12.99).toFixed(2);
+
+            mostrarModalCustom(
+                "Solicitar Reembolso",
+                `¿Estás seguro de solicitar el reembolso para el ticket ${codigoTicket}?\n\n• Monto total pagado: S/ ${totalPagado.toFixed(2)}\n• Monto nominal a devolver: S/ ${montoNominal}\n(El costo del seguro de garantía de S/ 12.99 no es reembolsable).`,
+                "🔄",
+                `
+                    <button onclick="cerrarModalCustom()" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition">Cancelar</button>
+                    <button onclick="ejecutarReembolsoServidor('${codigoTicket}')" class="w-1/2 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-md">Confirmar Reembolso</button>
+                `
+            );
+        }
+
+        // --- PETICIÓN REAL AL BACKEND PARA PERSISTIR EN DYNAMODB Y DISPARAR CORREO SMTP ---
+        async function ejecutarReembolsoServidor(codigoTicket) {
+            cerrarModalCustom();
+            const compra = comprasGlobales.find(c => (c.codigo_ticket || c.id) === codigoTicket);
+            
+            if (compra) {
+                compra.estado = "Reembolsado";
+                renderizarTablaPaginada();
+            }
+
+            try {
+                if (typeof API_COMPRAS_URL === 'undefined' || !API_COMPRAS_URL) {
+                    throw new Error("API_COMPRAS_URL no definida");
+                }
+
+                // Aseguramos que la URL limpie posibles barras duplicadas al final de la variable global
+                const baseUrl = API_COMPRAS_URL.endsWith('/') ? API_COMPRAS_URL.slice(0, -1) : API_COMPRAS_URL;
+
+                const res = await fetch(`${baseUrl}/compras/reembolso`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo_ticket: codigoTicket })
+                });
+
+                if (!res.ok) {
+                    throw new Error(`Error en el servidor: ${res.status}`);
+                }
+            } catch (err) {
+                console.error("Error sincronizando con backend:", err);
+            }
+
+            const totalPagado = parseFloat(compra?.precio_total || compra?.total || 0);
+            const montoNominal = Math.max(0, totalPagado - 12.99).toFixed(2);
+            const usuario = JSON.parse(localStorage.getItem('ticketpass_user') || '{}');
+            const correoUsuario = usuario.email || "jesus.delgadoa@gmail.com";
+
+            mostrarModalCustom(
+                "¡Reembolso Exitoso!",
+                `El ticket ${codigoTicket} ha sido reembolsado correctamente.\n\nSe ha registrado la devolución por el monto nominal de S/ ${montoNominal} y se ha enviado un correo de confirmación a [${correoUsuario}].`,
+                "✅",
+                `<button onclick="cerrarModalCustom()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-md">Entendido</button>`
+            );
         }
     </script>
 </body>

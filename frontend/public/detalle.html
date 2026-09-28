@@ -191,17 +191,27 @@
         </div>
     </footer>
 
-    <!-- MODAL AUTH -->
+    <!-- MODAL DE AUTENTICACIÓN -->
     <div id="authModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+            <!-- Botón cerrar (X) -->
             <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold p-1">&times;</button>
-            <h3 id="authTitle" class="text-2xl font-bold text-slate-900 mb-2">Iniciar Sesión</h3>
+            
+            <!-- Conmutador superior estilo Joinnus -->
+            <div class="flex items-center justify-end mb-6 text-xs gap-2">
+                <span id="authSwitchText" class="text-slate-500">¿No tienes cuenta?</span> 
+                <button type="button" onclick="toggleAuthMode()" class="border border-slate-300 rounded-full px-3 py-1 font-semibold text-slate-700 hover:bg-slate-50 transition" id="authSwitchBtn">
+                    Regístrate aquí
+                </button>
+            </div>
+
+            <h3 id="authTitle" class="text-2xl font-bold text-slate-900 mb-1">¡Bienvenido!</h3>
             <p id="authSubtitle" class="text-sm text-slate-500 mb-6">Ingresa tus credenciales para continuar</p>
 
             <form id="formAuth" onsubmit="handleAuthSubmit(event)" class="space-y-4">
                 <div id="nombreFieldContainer" class="hidden">
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre Completo</label>
-                    <input type="text" id="authNombre" placeholder="Juan Pérez" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <input type="text" id="authNombre" placeholder="Tu nombre" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Correo Electrónico</label>
@@ -211,7 +221,7 @@
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Contraseña</label>
                     <input type="password" id="authPassword" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                 </div>
-                <button type="submit" id="authSubmitBtn" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition shadow-md shadow-blue-100 text-sm">
+                <button type="submit" id="authSubmitBtn" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition shadow-md shadow-blue-100 text-sm mt-2">
                     Ingresar
                 </button>
             </form>
@@ -230,10 +240,11 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT EMBEBIDO -->
+    <!-- JAVASCRIPT EMBEBIDO DE DETALLE.HTML -->
     <script>
         const API_EVENTOS_URL = "https://k9ai3zejv8.execute-api.us-east-1.amazonaws.com/dev";
         const API_COMPRAS_URL = "https://2g26jo250g.execute-api.us-east-1.amazonaws.com/dev";
+        const API_USUARIOS_URL = "https://xihlkly0kg.execute-api.us-east-1.amazonaws.com/dev";
 
         let eventoActual = null;
         let zonasEvento = [];
@@ -245,13 +256,18 @@
             cargarDetalleEvento();
             iniciarTemporizador(15 * 60);
             
-            const usuarioRaw = localStorage.getItem('usuarioTicketPass');
+            // Autocompletar formulario si hay usuario activo en DynamoDB / localStorage
+            const usuarioRaw = localStorage.getItem('ticketpass_user');
             if (usuarioRaw) {
-                const user = JSON.parse(usuarioRaw);
-                const emailInput = document.getElementById('pagoEmail');
-                const nombreInput = document.getElementById('pagoNombre');
-                if (emailInput && user.email) emailInput.value = user.email;
-                if (nombreInput && user.nombre) nombreInput.value = user.nombre;
+                try {
+                    const user = JSON.parse(usuarioRaw);
+                    const emailInput = document.getElementById('pagoEmail');
+                    const nombreInput = document.getElementById('pagoNombre');
+                    if (emailInput && user.email) emailInput.value = user.email;
+                    if (nombreInput && user.nombre) nombreInput.value = user.nombre;
+                } catch (e) {
+                    console.error("Error leyendo datos del usuario:", e);
+                }
             }
         });
 
@@ -406,6 +422,33 @@
         async function procesarCompra(e) {
             e.preventDefault();
 
+            // 1. VALIDACIÓN ESTRICTA DE SESIÓN ACTIVA
+            const usuarioRaw = localStorage.getItem('ticketpass_user');
+            if (!usuarioRaw) {
+                // En lugar de un simple mensaje, abrimos directamente tu modal de login
+                if (typeof showAuthModal === 'function') {
+                    showAuthModal('login');
+                } else {
+                    alert("Debes iniciar sesión para realizar una compra.");
+                }
+                return;
+            }
+
+            let usuarioActual;
+            try {
+                usuarioActual = JSON.parse(usuarioRaw);
+            } catch (err) {
+                localStorage.removeItem('ticketpass_user');
+                showModal(false, "Sesión Inválida", "Tu sesión es inválida. Por favor, vuelve a iniciar sesión.");
+                return;
+            }
+
+            const emailAutenticado = usuarioActual.email;
+            if (!emailAutenticado) {
+                showModal(false, "Error de Autenticación", "No se encontró un correo válido asociado a tu sesión.");
+                return;
+            }
+
             const btnComprar = document.getElementById('btnComprar');
             btnComprar.disabled = true;
             btnComprar.innerHTML = `<span class="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></span> Procesando pago...`;
@@ -413,7 +456,9 @@
             const selectZona = document.getElementById('selectZona');
             const zonaNombre = selectZona.selectedOptions[0] ? selectZona.selectedOptions[0].text.split(' - ')[0] : "General";
             const cantidad = parseInt(document.getElementById('inputCantidad').value) || 1;
-            const email = document.getElementById('pagoEmail').value.trim();
+            
+            // Forzamos el uso del email de la sesión activa por seguridad
+            const email = emailAutenticado;
 
             const totalTexto = document.getElementById('resumenTotal').textContent.replace('S/', '').trim();
             const precioTotal = parseFloat(totalTexto) || 0.0;
@@ -424,42 +469,27 @@
             const params = new URLSearchParams(window.location.search);
             const eventoId = params.get('id');
 
-            // =========================================================================
-            // EXTRACCIÓN DIRECTA DESDE LA TARJETA EN PANTALLA
-            // =========================================================================
-            
-            // 1. Obtener el texto del lugar
-            const elemLugar = document.querySelector('.event-location') || 
-                            document.getElementById('detLugar') || 
-                            document.getElementById('lugarEvento');
+            // Extracción directa desde los campos visibles en pantalla
+            const elemLugar = document.getElementById('eventoLugar') || document.querySelector('.event-location');
             let lugarTexto = elemLugar ? elemLugar.innerText.trim() : '';
 
-            // 2. Obtener el texto unificado de fecha y hora directamente (ej. "10 Nov 2026 - 10:00 hrs")
-            const elemFechaHora = document.querySelector('.event-date') || 
-                                document.getElementById('detFechaHora') || 
-                                document.getElementById('fechaEvento');
+            const elemFechaHora = document.getElementById('eventoFecha') || document.querySelector('.event-date');
             let fechaHoraTexto = elemFechaHora ? elemFechaHora.innerText.trim() : '';
 
-            // =========================================================================
-            // CONSTRUCCIÓN DEL PAYLOAD (SIN PARÁMETRO HORA)
-            // =========================================================================
             const payload = {
                 evento_id: eventoId,
                 usuario_email: email,
                 email: email,
                 titulo_evento: (typeof eventoActual !== 'undefined' && eventoActual && (eventoActual.titulo || eventoActual.nombre))
                     ? (eventoActual.titulo || eventoActual.nombre)
-                    : (document.querySelector('h1')?.innerText || "Evento TicketPass"),
+                    : (document.getElementById('eventoTitulo')?.innerText || "Evento TicketPass"),
                 zona: zonaNombre,
                 cantidad: cantidad,
                 precio_total: precioTotal,
                 reembolsable: esReembolsable,
-
                 lugar_evento: (typeof eventoActual !== 'undefined' && eventoActual && (eventoActual.lugar || eventoActual.ubicacion || eventoActual.lugar_evento))
                     ? (eventoActual.lugar || eventoActual.ubicacion || eventoActual.lugar_evento)
                     : (lugarTexto || 'Por confirmar'),
-
-                // Se envía la cadena completa directamente
                 fecha_evento: (typeof eventoActual !== 'undefined' && eventoActual && (eventoActual.fecha || eventoActual.fecha_evento))
                     ? (eventoActual.fecha || eventoActual.fecha_evento)
                     : (fechaHoraTexto || 'Por confirmar')
@@ -490,14 +520,15 @@
             } catch (error) {
                 console.error("Error procesando compra:", error);
                 showModal(false, "Error en la compra", "No se pudo procesar la transacción ni enviar el correo. Intenta nuevamente.");
-
             } finally {
                 btnComprar.disabled = false;
                 btnComprar.textContent = "Confirmar y Pagar";
             }
         }
 
+        // --- MANEJO DE MODAL DE AUTENTICACIÓN (LOGIN / REGISTRO) ---
         let currentAuthMode = 'login';
+        
         function showAuthModal(mode = 'login') {
             currentAuthMode = mode;
             const modal = document.getElementById('authModal');
@@ -505,19 +536,41 @@
             const subtitle = document.getElementById('authSubtitle');
             const submitBtn = document.getElementById('authSubmitBtn');
             const nombreContainer = document.getElementById('nombreFieldContainer');
+            const switchText = document.getElementById('authSwitchText');
+            const switchBtn = document.getElementById('authSwitchBtn');
+
+            if (!modal) return;
 
             if (mode === 'register') {
-                title.textContent = "Crear Cuenta";
-                subtitle.textContent = "Regístrate para comprar tus entradas fácilmente";
-                submitBtn.textContent = "Registrarse";
-                nombreContainer.classList.remove('hidden');
+                if (title) title.textContent = "Crea tu cuenta";
+                if (subtitle) subtitle.textContent = "Regístrate para comprar tus entradas fácilmente";
+                if (submitBtn) {
+                    submitBtn.textContent = "Registrarse";
+                    submitBtn.className = "w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition shadow-md shadow-blue-100 text-sm mt-2";
+                }
+                if (nombreContainer) nombreContainer.classList.remove('hidden');
+                if (switchText) switchText.textContent = "¿Ya tienes cuenta?";
+                if (switchBtn) switchBtn.textContent = "Inicia sesión aquí";
             } else {
-                title.textContent = "Iniciar Sesión";
-                subtitle.textContent = "Ingresa tus credenciales para continuar";
-                submitBtn.textContent = "Ingresar";
-                nombreContainer.classList.add('hidden');
+                if (title) title.textContent = "¡Bienvenido!";
+                if (subtitle) subtitle.textContent = "Ingresa tus credenciales para continuar";
+                if (submitBtn) {
+                    submitBtn.textContent = "Ingresar";
+                    submitBtn.className = "w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition shadow-md shadow-blue-100 text-sm mt-2";
+                }
+                if (nombreContainer) nombreContainer.classList.add('hidden');
+                if (switchText) switchText.textContent = "¿No tienes cuenta?";
+                if (switchBtn) switchBtn.textContent = "Regístrate aquí";
             }
             modal.classList.remove('hidden');
+        }
+
+        function toggleAuthMode() {
+            if (currentAuthMode === 'login') {
+                showAuthModal('register');
+            } else {
+                showAuthModal('login');
+            }
         }
 
         function closeAuthModal() {
@@ -527,60 +580,99 @@
             if (form) form.reset();
         }
 
-        function handleAuthSubmit(event) {
+        async function handleAuthSubmit(event) {
             event.preventDefault();
+            
             const emailInput = document.getElementById('authEmail');
+            const passwordInput = document.getElementById('authPassword');
             const nombreInput = document.getElementById('authNombre');
-            const email = emailInput ? emailInput.value.trim() : "";
-            const nombreVal = nombreInput ? nombreInput.value.trim() : "";
-            let nombreFinal = "Usuario";
+            const submitBtn = document.getElementById('authSubmitBtn');
 
-            if (currentAuthMode === 'register' && nombreVal) {
-                nombreFinal = nombreVal;
-            } else if (email) {
-                const partes = email.split('@');
-                nombreFinal = partes[0].charAt(0).toUpperCase() + partes[0].slice(1);
+            const email = emailInput ? emailInput.value.trim().toLowerCase() : "";
+            const password = passwordInput ? passwordInput.value.trim() : "";
+            const nombreVal = nombreInput ? nombreInput.value.trim() : "";
+
+            if (!email || !password) {
+                showModal(false, "Campos Incompletos", "Por favor ingresa tu correo y contraseña.");
+                return;
             }
 
-            localStorage.setItem('usuarioTicketPass', JSON.stringify({ email: email, nombre: nombreFinal }));
-            closeAuthModal();
-            actualizarNavbarUsuario();
-            
-            const pEmail = document.getElementById('pagoEmail');
-            const pNombre = document.getElementById('pagoNombre');
-            if (pEmail) pEmail.value = email;
-            if (pNombre) pNombre.value = nombreFinal;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></span> Procesando...`;
 
-            showModal(true, "¡Bienvenido!", `Hola, ${nombreFinal}. Has iniciado sesión correctamente.`, false);
+            try {
+                const endpoint = currentAuthMode === 'register' 
+                    ? `${API_USUARIOS_URL}/usuarios/registro`
+                    : `${API_USUARIOS_URL}/usuarios/login`;
+
+                const bodyPayload = currentAuthMode === 'register'
+                    ? { email, password, nombre: nombreVal || "Usuario" }
+                    : { email, password };
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bodyPayload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || data.message || "Error al procesar solicitud.");
+                }
+
+                const usuarioGuardar = data.usuario || { email: email, nombre: nombreVal || email.split('@')[0] };
+                localStorage.setItem('ticketpass_user', JSON.stringify(usuarioGuardar));
+
+                closeAuthModal();
+                actualizarNavbarUsuario();
+
+                const pEmail = document.getElementById('pagoEmail');
+                const pNombre = document.getElementById('pagoNombre');
+                if (pEmail) pEmail.value = usuarioGuardar.email;
+                if (pNombre) pNombre.value = usuarioGuardar.nombre;
+
+                showModal(true, "¡Bienvenido!", `Hola, ${usuarioGuardar.nombre}. Sesión iniciada correctamente.`, false);
+
+            } catch (error) {
+                console.error("Error de autenticación:", error);
+                showModal(false, "Error de Acceso", error.message || "No se pudo conectar con el servidor.");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = currentAuthMode === 'register' ? "Registrarse" : "Ingresar";
+            }
         }
 
         function cerrarSesion() {
-            localStorage.removeItem('usuarioTicketPass');
+            localStorage.removeItem('ticketpass_user');
             actualizarNavbarUsuario();
-            showModal(true, "Sesión Cerrada", "Has cerrado sesión correctamente.", true);
+            showModal(true, "Sesión Cerrada", "Has cerrado sesión correctamente.");
         }
 
         function actualizarNavbarUsuario() {
             const navAuth = document.getElementById('navAuth');
             if (!navAuth) return;
-            const usuarioRaw = localStorage.getItem('usuarioTicketPass');
+
+            const usuarioRaw = localStorage.getItem('ticketpass_user');
 
             if (usuarioRaw) {
-                const usuario = JSON.parse(usuarioRaw);
-                navAuth.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <a href="historial.html" class="text-xs font-semibold text-slate-600 hover:text-blue-600 px-3 py-2 rounded-xl transition border border-slate-200 bg-white">
-                            Mis Compras
-                        </a>
-                        <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span class="text-xs font-semibold text-slate-700">Hola, <strong class="text-blue-600 font-bold">${usuario.nombre}</strong></span>
+                try {
+                    const usuario = JSON.parse(usuarioRaw);
+                    navAuth.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <a href="historial.html" class="text-xs font-semibold text-slate-600 hover:text-blue-600 transition">Mis Compras</a>
+                            <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span class="text-xs font-semibold text-slate-700">Hola, <strong class="text-blue-600 font-bold">${usuario.nombre}</strong></span>
+                            </div>
+                            <button onclick="cerrarSesion()" class="text-xs text-red-600 hover:text-red-700 font-medium bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl transition border border-red-100">
+                                Cerrar Sesión
+                            </button>
                         </div>
-                        <button onclick="cerrarSesion()" class="text-xs text-red-600 hover:text-red-700 font-medium bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl transition border border-red-100">
-                            Cerrar Sesión
-                        </button>
-                    </div>
-                `;
+                    `;
+                } catch (e) {
+                    localStorage.removeItem('ticketpass_user');
+                }
             } else {
                 navAuth.innerHTML = `
                     <button onclick="showAuthModal('login')" class="text-sm font-medium text-slate-600 hover:text-blue-600 px-3 py-2 rounded-lg transition">
@@ -595,29 +687,30 @@
 
         function showModal(exito, titulo, mensaje, redirigir = false) {
             const modal = document.getElementById('statusModal');
-            const icon = document.getElementById('statusIcon');
-            const title = document.getElementById('statusTitle');
-            const msg = document.getElementById('statusMessage');
+            const iconContainer = document.getElementById('statusIcon');
+            const titleElem = document.getElementById('statusTitle');
+            const msgElem = document.getElementById('statusMessage');
+
+            if (!modal || !iconContainer || !titleElem || !msgElem) return;
 
             redirectOnClose = redirigir;
+            titleElem.textContent = titulo;
+            msgElem.textContent = mensaje;
 
             if (exito) {
-                icon.className = "w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-4 bg-emerald-100 text-emerald-600 text-2xl font-bold";
-                icon.textContent = "✓";
+                iconContainer.className = "w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-4 bg-emerald-100 text-emerald-600 font-bold text-xl";
+                iconContainer.textContent = "✓";
             } else {
-                icon.className = "w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-4 bg-red-100 text-red-600 text-2xl font-bold";
-                icon.textContent = "✕";
+                iconContainer.className = "w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-4 bg-red-100 text-red-600 font-bold text-xl";
+                iconContainer.textContent = "✕";
             }
 
-            title.textContent = titulo;
-            msg.textContent = mensaje;
             modal.classList.remove('hidden');
         }
 
         function closeStatusModal() {
             const modal = document.getElementById('statusModal');
             if (modal) modal.classList.add('hidden');
-
             if (redirectOnClose) {
                 window.location.href = "index.html";
             }
